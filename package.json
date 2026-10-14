@@ -1,0 +1,16 @@
+{
+  "name": "mais-bella",
+  "version": "1.0.0",
+  "description": "Loja de moda feminina Mais Bella — demonstração visual MAISBELLA-001",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
