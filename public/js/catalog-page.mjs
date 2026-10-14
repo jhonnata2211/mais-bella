@@ -1,11 +1,13 @@
 import { products } from './data/products.mjs';
 import { catalogOptions, queryProducts } from './catalog.mjs';
-import { escapeHTML, renderProductGrid } from './products.mjs';
+import { escapeHTML, productURL, renderProductGrid } from './products.mjs';
 import { initStorefront } from './storefront.mjs';
 
 export function initCatalog() {
   const form = document.querySelector('#catalog-filters');
   const params = new URLSearchParams(window.location.search);
+  // Compatibilidade com URLs de seleção da MAISBELLA-002.
+  if (params.has('produto')) { window.location.replace(productURL({ slug: params.get('produto') })); return; }
   let favoritesOnly = params.get('favoritos') === '1';
   let promotionsOnly = params.get('promocoes') === '1';
   let newOnly = params.get('novidades') === '1';
@@ -60,23 +62,14 @@ export function initCatalog() {
     if (favoritesOnly) url.searchParams.set('favoritos', '1');
     if (promotionsOnly) url.searchParams.set('promocoes', '1');
     if (newOnly) url.searchParams.set('novidades', '1');
-    if (params.has('produto')) url.searchParams.set('produto', params.get('produto'));
     window.history.replaceState(null, '', url);
   }
   form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) render(); });
   form.addEventListener('change', () => { if (form.reportValidity()) render(); });
   document.querySelector('#clear-filters').addEventListener('click', () => {
     form.reset(); favoritesOnly = false; promotionsOnly = false; newOnly = false;
-    params.delete('produto');
-    document.querySelector('#selected-product').hidden = true;
     store.setFavoritesMode(false);
     render();
   });
-  const selected = products.find(product => product.active && product.slug === params.get('produto'));
-  if (selected) {
-    const notice = document.querySelector('#selected-product');
-    notice.hidden = false;
-    notice.textContent = `Você selecionou ${selected.name}. A página individual será disponibilizada em uma próxima etapa. Continue explorando o catálogo demonstrativo.`;
-  }
   render();
 }

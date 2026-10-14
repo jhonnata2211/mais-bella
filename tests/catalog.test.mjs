@@ -129,7 +129,7 @@ test('card reutilizável inclui indicadores, preço, favorito e seleção por sl
   assert.ok(card.includes('aria-pressed="true"'));
   assert.ok(card.includes('data-favorite="vestido"'));
   assert.ok(card.includes('3x de') && card.includes('demo'));
-  assert.equal(productURL(products[0]), '/catalogo.html?produto=vestido-midi-essencia#catalogo');
+  assert.equal(productURL(products[0]), '/produto.html?slug=vestido-midi-essencia');
   assert.ok(!productCard(products[1]).includes('<s>'));
 });
 

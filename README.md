@@ -6,9 +6,11 @@ Loja de moda feminina com identidade de boutique: blush, rosa queimado, nude e o
 
 **MAISBELLA-002 — catálogo estruturado:** fonte local com 12 produtos fictícios, cards reutilizáveis, catálogo com filtros combináveis e ordenação, busca em nome/categoria/descrições e favoritos por ID persistidos no navegador. A identidade e as seções da Home foram preservadas. Nenhum banco de dados ou framework frontend foi adicionado.
 
+**MAISBELLA-003 — página individual e sacola local:** produto por slug ou ID, galeria local com miniaturas, cores/tamanhos derivados dos dados, estoque fictício por variação, quantidade limitada e guia de medidas demonstrativo em modal. A sacola persiste localmente, tem painel no header e página de revisão, sem checkout. Home e catálogo continuam com sua identidade original.
+
 ## Instalar e executar
 
-Pré-requisito: Node.js 20 ou superior e npm. Use um navegador moderno com suporte a módulos JavaScript.
+Pré-requisito: Node.js 20 ou superior e npm. Use um navegador moderno com suporte a módulos JavaScript e ao elemento nativo `<dialog>`.
 
 ```sh
 npm install
@@ -17,6 +19,8 @@ npm start
 
 - Home: **http://localhost:3000/**
 - Catálogo: **http://localhost:3000/catalogo.html**
+- Produto de exemplo: **http://localhost:3000/produto.html?slug=vestido-midi-essencia**
+- Sacola local: **http://localhost:3000/sacola.html**
 
 Para outra porta:
 
@@ -32,12 +36,20 @@ O servidor Express serve apenas `public` e usa `process.env.PORT || 3000`. Abra 
 public/
   index.html               # Home original consumindo o catálogo compartilhado
   catalogo.html            # Coleção, filtros e resultados acessíveis
+  produto.html             # Estrutura da página de produto e guia de medidas
+  sacola.html              # Revisão dos itens locais, sem checkout
   css/style.css            # Identidade original e estilos adicionais do catálogo
   js/
     app.js                 # Inicializador da página
     data/products.mjs      # Fonte única dos 12 produtos fictícios
     catalog.mjs            # Busca, filtros, ordenação e opções (lógica pura)
-    products.mjs           # Card reutilizável e destino de seleção por slug
+    products.mjs           # Cards, imagens compartilhadas e links por slug
+    product-model.mjs      # Localização e validação pura de variações/estoque
+    product-page.mjs       # Galeria, opções, quantidade e página individual
+    cart.mjs               # Operações puras, persistência e estado da sacola
+    cart-panel.mjs         # Drawer e renderização compartilhada dos itens
+    cart-page.mjs          # Página de revisão da sacola
+    dialog.mjs             # Abertura/fechamento e retorno do foco dos modais
     storefront.mjs         # Menu, pesquisa, favoritos, sacola e newsletter
     home.mjs               # Vitrines de novidades e mais vendidos
     catalog-page.mjs       # Interface e estado dos filtros do catálogo
@@ -48,7 +60,8 @@ src/
   services/
 data/
 tests/
-  catalog.test.mjs          # Testes com node:test e assert, sem dependências extras
+  catalog.test.mjs          # Testes de catálogo com node:test e assert
+  product-cart.test.mjs     # Produto, variações, estoque e sacola, sem bibliotecas extras
 server.js
 package.json
 ```
@@ -71,7 +84,7 @@ Os nomes dos campos usam inglês no código, com conteúdo em português:
 | `featured`, `isNew`, `bestSeller`, `active` | Destaque, novidade, mais vendido e ativo |
 | `createdAt` | Data fictícia de inclusão para ordenação por novidades |
 
-A fonte é `public/js/data/products.mjs`, compartilhada pela Home e catálogo. Atualize esse arquivo para editar os dados demonstrativos. IDs antigos foram preservados. As ilustrações usam as formas CSS existentes; o card também suporta uma imagem local com `{ type: 'image', src: '/assets/arquivo.webp', alt: 'Descrição' }`.
+A fonte é `public/js/data/products.mjs`, compartilhada pela Home, catálogo, produto e sacola. Atualize esse arquivo para editar os dados demonstrativos. IDs antigos foram preservados. As ilustrações usam as formas CSS existentes; o card também suporta uma imagem local com `{ type: 'image', src: '/assets/arquivo.webp', alt: 'Descrição' }`.
 
 Filtros combinam categoria, tamanho, cor, faixa de preço e busca. Quando tamanho e cor são selecionados, a combinação deve existir nas variações. O estoque não determina disponibilidade comercial nesta demonstração. Produtos inativos são excluídos das vitrines e das opções de filtros.
 
@@ -83,7 +96,7 @@ A busca ignora caixa e acentos e pesquisa nome, categoria e ambas as descriçõe
 npm test
 ```
 
-A suíte nativa do Node cobre categoria, tamanho, cor e combinação de variações, busca em todos os campos, preço promocional, faixa inclusiva, ordenação, inativos, integridade dos dados, favoritos/persistência e renderização dos cards. Não requer infraestrutura adicional.
+A suíte nativa do Node cobre categoria, tamanho, cor e combinação de variações, busca em todos os campos, preço promocional, faixa inclusiva, ordenação, inativos, integridade dos dados, favoritos/persistência e renderização dos cards. Também cobre localizar produto por slug/ID, validar cor+tamanho, recusar esgotados e quantidades inválidas, adicionar/combinar/diferenciar/remover itens, subtotal em centavos, persistência, dados locais inválidos e fallback em memória. Não requer infraestrutura adicional.
 
 Para conferir sintaxe (shell Unix/Termux):
 
@@ -96,26 +109,49 @@ find public/js tests -name '*.mjs' -exec node --check {} \;
 ## Validação manual no navegador
 
 1. Inicie `npm start` e visite a Home e `/catalogo.html`. Confira as vitrines originais e o link “Explorar catálogo”. O catálogo sem filtros deve exibir **12 de 12 produtos demonstrativos**.
-2. Teste ambas as páginas em **320, 375, 768 e 1440 px** nas ferramentas de desenvolvimento. Confira legibilidade, menu mobile, filtros, cards e ausência de rolagem horizontal. Uma checagem no console é `document.documentElement.scrollWidth <= window.innerWidth`.
+2. Teste Home, catálogo, produto e sacola em **320, 375, 768 e 1440 px** nas ferramentas de desenvolvimento. Confira legibilidade, menu mobile, filtros, cards e ausência de rolagem horizontal. Uma checagem no console é `document.documentElement.scrollWidth <= window.innerWidth`.
 3. No catálogo, combine **Calças + GG + Chumbo**: deve restar a calça Amélia. Limpe os filtros. Use mínimo **179,90** e máximo **189,90**: devem aparecer Amélia e Essência. Inverta a faixa para conferir a mensagem de erro.
 4. Busque **AMELIA**, **calça**, **entardecer**, **mangas delicadas** e um termo inexistente. A busca do header também consulta as descrições na Home e no catálogo. Verifique o estado vazio.
 5. Alterne entre novidades, menor preço, maior preço e nome. Ao ordenar por preço, Aurora deve ser a primeira na ordem crescente e Clara a primeira na decrescente.
 6. Favorite uma peça na Home, confira a sincronização entre vitrines, visite o catálogo e recarregue a página. O favorito deve permanecer. Teste também o filtro de favoritos e a remoção da última peça favoritada. Se o armazenamento estiver bloqueado, os favoritos continuam em memória.
-7. Os filtros ficam na URL; recarregue uma URL filtrada e confira a restauração. Clique na imagem ou nome de um produto: o catálogo registra seu slug e informa que a página individual será criada futuramente, sem gerar uma rota inexistente.
-8. Adicione uma peça à sacola e confira o contador demonstrativo. Ele é zerado ao recarregar ou navegar para outra página; não há carrinho real.
+7. Os filtros ficam na URL; recarregue uma URL filtrada e confira a restauração. Clique na imagem, no nome ou em “Escolher opções”: deve abrir `/produto.html?slug=...`. Os favoritos continuam independentes do link.
+8. Na página individual, escolha cor e tamanho, adicione uma peça e confira o contador. Abra o painel da sacola e “Ver sacola”, recarregue e remova o item. Os itens devem permanecer entre páginas e recarregamentos na mesma origem.
 9. Use Tab/Enter para acessar links, favoritos e filtros. Confira foco visível, labels e link “Pular para o conteúdo”. `Esc` fecha menu/pesquisa e devolve o foco ao botão.
 10. Envie um e-mail válido na newsletter e confirme a mensagem demonstrativa; nenhum e-mail é armazenado ou enviado.
 
 Para abrir em outro dispositivo na mesma rede, use `http://IP-DO-SERVIDOR:3000`, com a porta acessível na rede local.
 
+## Variações, estoque e sacola local — MAISBELLA-003
+
+A página renderiza nome, categoria, descrições, novidade, preço vigente, desconto e parcelamento a partir da fonte compartilhada. A galeria usa todas as entradas de `images`, com miniaturas e controles anterior/próxima quando há mais de uma. Essência e Serena têm duas composições ilustrativas locais; fotografias futuras podem usar o mesmo modelo de imagem. Cores são escolhas independentes da imagem ilustrativa.
+
+Não há seleção automática de cor ou tamanho. Escolha a cor primeiro; os tamanhos esgotados nessa cor ficam desabilitados e identificados. A combinação cor+tamanho precisa existir nos dados. A quantidade aceita inteiros a partir de 1 e respeita o estoque demonstrativo **incluindo a quantidade dessa mesma variação já na sacola**. Estoques da fonte não são reduzidos, reservados ou enviados a um servidor.
+
+Os cards abrem “Escolher opções” na página individual em vez de adicionar uma variação indefinida. A sacola salva `productId`, `slug`, `name`, `price`, `color`, `size`, `quantity` e `image`. Itens são combinados somente por produto + cor + tamanho. O subtotal soma centavos para evitar erros de ponto flutuante. Ao ler dados locais, o catálogo é a fonte para preços, imagens e estoque: registros inválidos/inativos são ignorados, duplicatas normalizadas e quantidades limitadas ao estoque atual fictício.
+
+O header de todas as páginas exibe a soma das quantidades e abre um painel com itens, variações, subtotal, remoção e link para `sacola.html`. Essa página permite revisar/remover itens e voltar ao catálogo. Alterações são refletidas em abas da mesma origem. A sacola é local, sem conta, sincronização entre dispositivos ou garantia de concorrência entre gravações simultâneas.
+
+Guia de medidas e painel usam `<dialog>.showModal()`: foco contido pelo navegador, botão de fechamento, Escape, fundo inerte e retorno do foco ao controle que abriu o modal. A tabela de medidas é uma referência fictícia; substitua-a por medidas oficiais antes de qualquer uso comercial.
+
+### Conferir a página individual
+
+1. Abra `/produto.html?slug=vestido-midi-essencia`, compare as duas imagens pela miniatura e pelas setas. Confira preço base, promoção e descrições.
+2. Escolha **Rosa queimado**: **P** deve ficar esgotado/desabilitado; **M** tem **5** unidades fictícias. Escolha M, tente ultrapassar 5 e confira o limite. Adicione 2: só mais 3 dessa combinação devem ser aceitas.
+3. Adicione novamente a mesma combinação e confira que continua em uma linha com quantidade somada. Mude para **Nude + M**: deve gerar uma linha separada. Não altere o estoque da fonte.
+4. Abra a sacola do header; confira variações, quantidades e subtotal. Use “Ver sacola”, remova um item e confira painel/contador. Recarregue a Home: a quantidade deve permanecer.
+5. Favorite/desfavorite na página individual e confira Home/catálogo após navegar ou em outra aba.
+6. Abra “Guia de medidas”, confira a identificação de referência fictícia e navegue com Tab/Shift+Tab. Escape e o botão de fechar devem devolver foco ao acionador. Repita no painel da sacola.
+7. Teste `/produto.html?id=vestido`, `/produto.html?slug=inexistente` e a URL sem parâmetros. As duas últimas devem mostrar o estado de produto não encontrado.
+8. Verifique em **320, 375, 768 e 1440 px**: galeria, nomes, preços, opções e modais legíveis, controles de toque confortáveis e sem overflow horizontal. A conferência visual em navegador real é necessária; testes de lógica não validam layout ou leitores de tela.
+
 ## Limitações desta etapa
 
 Produtos, preços, parcelamento, promoções, datas, estoques e a seleção de mais vendidos são fictícios. Benefícios e pagamentos são apresentação visual do serviço previsto. Não há produtos disponíveis para compra.
 
-Favoritos guardam apenas IDs na chave `maisbella:favorites:v1` do `localStorage`, com sincronização entre abas da mesma origem e fallback em memória. Não há conta ou sincronização entre dispositivos. A sacola permanece somente um contador temporário.
+Favoritos guardam apenas IDs na chave `maisbella:favorites:v1` do `localStorage`, com sincronização entre abas da mesma origem e fallback em memória. Não há conta ou sincronização entre dispositivos. A sacola guarda apenas itens demonstrativos na chave `maisbella:cart:v1` do mesmo armazenamento; quando o armazenamento estiver bloqueado, há feedback e fallback em memória apenas na página atual.
 
-A seleção de produto usa `/catalogo.html?produto=slug#catalogo`. O destino fica centralizado em `productURL` para futura substituição; nenhuma página individual completa foi criada.
+A página individual usa `/produto.html?slug=slug` e também aceita `?id=id`. O destino fica centralizado em `productURL`. URLs antigas com `/catalogo.html?produto=slug` redirecionam para a nova página pelo JavaScript. Produto inexistente ou inativo mostra “Produto não encontrado” e retorno ao catálogo.
 
-Não há banco de dados, autenticação, painel administrativo, pagamento, checkout, coleta de e-mails ou integração social. JavaScript é necessário para renderizar as vitrines e os filtros. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
+Não há banco de dados, autenticação, painel administrativo, pagamento, checkout, coleta de e-mails ou integração social. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
 
 Nenhuma credencial é necessária. `.env` e `node_modules` estão ignorados pelo Git.

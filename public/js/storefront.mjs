@@ -1,4 +1,6 @@
 import { products } from './data/products.mjs';
+import { CART_KEY, createCartStore } from './cart.mjs';
+import { initCartPanel } from './cart-panel.mjs';
 
 export const FAVORITES_KEY = 'maisbella:favorites:v1';
 export function readFavorites(storage, source = products) {
@@ -20,11 +22,11 @@ export function writeFavorites(storage, favorites) {
   }
 }
 
-export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
+export function initStorefront({ onSearch, onCategory, onFavorites, onCartChange } = {}) {
   let storage;
   try { storage = window.localStorage; } catch { /* Modo privado: favoritos em memória. */ }
   const favorites = readFavorites(storage);
-  let bagCount = 0;
+  const cart = createCartStore(storage);
   let toastTimer;
   const favoritesToggle = document.querySelector('#favorites-toggle');
   const menuToggle = document.querySelector('.menu-toggle');
@@ -46,6 +48,7 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
   function syncFavorites() {
     document.querySelectorAll('[data-favorite]').forEach(button => {
       const product = products.find(item => item.id === button.dataset.favorite);
+      if (!product) return;
       const selected = favorites.has(product.id);
       button.setAttribute('aria-pressed', String(selected));
       button.setAttribute('aria-label', `${selected ? 'Remover dos' : 'Adicionar aos'} favoritos: ${product.name}`);
@@ -59,7 +62,7 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
     favoritesToggle.setAttribute('aria-pressed', String(enabled));
   }
   function scrollToProducts() {
-    (document.querySelector('#catalogo') || document.querySelector('#novidades')).scrollIntoView({
+    (document.querySelector('#catalogo') || document.querySelector('#novidades'))?.scrollIntoView({
       behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
     });
   }
@@ -89,20 +92,14 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
       }
       notify(`${favorites.has(id) ? 'Peça adicionada aos favoritos ♡' : 'Peça removida dos favoritos.'}${saved ? '' : ' Favoritos mantidos apenas nesta página.'}`);
     }
-    const add = event.target.closest('[data-add]');
-    if (add && products.some(product => product.active && product.id === add.dataset.add)) {
-      bagCount += 1;
-      document.querySelector('#bag-count').textContent = bagCount;
-      document.querySelector('#bag-button').setAttribute('aria-label', `Sacola demonstrativa, ${bagCount} itens`);
-      notify('Peça adicionada à sacola demonstrativa. Nenhuma compra foi realizada.');
-    }
     const info = event.target.closest('[data-info]');
     if (info) notify(info.dataset.info);
   });
   favoritesToggle.addEventListener('click', () => {
     const enabled = favoritesToggle.getAttribute('aria-pressed') !== 'true';
     setFavoritesMode(enabled);
-    onFavorites?.({ enabled });
+    if (onFavorites) onFavorites({ enabled });
+    else window.location.href = '/catalogo.html?favoritos=1#catalogo';
     scrollToProducts();
   });
   searchToggle.addEventListener('click', () => {
@@ -112,18 +109,19 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
   });
   searchPanel.addEventListener('submit', event => {
     event.preventDefault();
-    onSearch?.(document.querySelector('#search').value.trim());
+    const query = document.querySelector('#search').value.trim();
+    if (onSearch) onSearch(query);
+    else window.location.href = `/catalogo.html?busca=${encodeURIComponent(query)}#catalogo`;
     scrollToProducts();
   });
   document.querySelector('#account-button').addEventListener('click', () => notify('A área de conta estará disponível em uma próxima etapa.'));
-  document.querySelector('#bag-button').addEventListener('click', () => notify(`Sua sacola demonstrativa tem ${bagCount} ${bagCount === 1 ? 'peça' : 'peças'}. Checkout indisponível nesta etapa.`));
   document.querySelector('#newsletter-form')?.addEventListener('submit', event => {
     event.preventDefault();
     document.querySelector('#newsletter-status').textContent = 'Obrigada pelo interesse ♡ Esta é uma demonstração; seu e-mail não foi armazenado.';
     event.target.reset();
   });
   document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
+    if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return;
     const menuOpen = menuToggle.getAttribute('aria-expanded') === 'true';
     const searchOpen = !searchPanel.hidden;
     setMenu(false);
@@ -134,6 +132,7 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
   });
   matchMedia('(min-width: 761px)').addEventListener('change', () => setMenu(false));
   window.addEventListener('storage', event => {
+    if (event.key === CART_KEY || event.key === null) cart.refresh();
     if (event.key !== FAVORITES_KEY && event.key !== null) return;
     favorites.clear();
     readFavorites(storage).forEach(id => favorites.add(id));
@@ -142,5 +141,7 @@ export function initStorefront({ onSearch, onCategory, onFavorites } = {}) {
   });
   document.querySelector('#year').textContent = new Date().getFullYear();
   syncFavorites();
-  return { favorites, notify, syncFavorites, setFavoritesMode };
+  const cartPanel = initCartPanel(cart, notify);
+  cart.subscribe(() => onCartChange?.());
+  return { favorites, notify, syncFavorites, setFavoritesMode, cart, cartPanel };
 }

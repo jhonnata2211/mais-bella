@@ -3,7 +3,13 @@
 // Inicializador leve. Dados, lógica, cards e interações ficam em módulos separados.
 (async () => {
   try {
-    if (document.body.dataset.page === 'catalog') {
+    if (document.body.dataset.page === 'product') {
+      const { initProductPage } = await import('./product-page.mjs');
+      initProductPage();
+    } else if (document.body.dataset.page === 'cart') {
+      const { initCartPage } = await import('./cart-page.mjs');
+      initCartPage();
+    } else if (document.body.dataset.page === 'catalog') {
       const { initCatalog } = await import('./catalog-page.mjs');
       initCatalog();
     } else {

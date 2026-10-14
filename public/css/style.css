@@ -48,3 +48,106 @@
 @media(min-width:600px){.catalog-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:24px}.catalog-search-field,.filter-actions,.filter-error{grid-column:1 / -1}.catalog-intro h1{font-size:55px}}
 @media(min-width:1000px){.catalog-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.catalog-search-field{grid-column:span 2}.price-filter{grid-column:span 2}.filter-actions{grid-column:auto}.filter-error{grid-column:1 / -1}.catalog-intro{padding-bottom:55px}}
 @media(max-width:760px){.collection-links{gap:10px}.product-badges{left:8px;top:15px}.products-section .section-heading{flex-wrap:wrap}.collection-links .text-button{white-space:normal}}
+
+/* MAISBELLA-003: produto, variações e sacola local. */
+.product-breadcrumb{padding-block:22px;font-size:10px;overflow-wrap:anywhere}
+.product-breadcrumb>span{color:var(--muted)}
+.product-detail{display:grid;grid-template-columns:minmax(0,1fr);gap:32px;padding-bottom:55px}
+.product-gallery,.product-details-copy{min-width:0}
+.gallery-main{height:350px;display:grid;place-items:center;position:relative;overflow:hidden;background-image:linear-gradient(135deg,#ffffff35,transparent)}
+.gallery-main:before{content:'';position:absolute;inset:25px 35px 0;border:1px solid #ffffff80;border-radius:200px 200px 0 0}
+.gallery-main .garment{width:185px;height:270px}
+.gallery-main .garment-blouse{width:220px;height:175px}
+.gallery-main .garment-pants{width:165px}
+.gallery-main .garment-skirt{clip-path:polygon(25% 0,75% 0,100% 100%,0 100%);height:200px}
+.gallery-main .garment-shorts{clip-path:polygon(15% 0,85% 0,100% 100%,55% 100%,50% 40%,45% 100%,0 100%);height:140px}
+.gallery-main img{width:100%;height:100%;object-fit:contain;position:relative}
+.gallery-controls{display:flex;align-items:center;justify-content:space-between;font-size:10px;margin-top:8px;color:var(--muted)}
+.gallery-controls .icon-button{width:44px;font-size:19px}
+.gallery-thumbnails{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.gallery-thumbnail{width:64px;height:80px;border:1px solid var(--line);padding:0;position:relative;overflow:hidden;display:grid;place-items:center}
+.gallery-thumbnail[aria-pressed="true"]{border:2px solid var(--rose)}
+.gallery-thumbnail .garment{transform:scale(.35);position:absolute}
+.gallery-thumbnail img{width:100%;height:100%;object-fit:cover}
+.product-details-copy h1{font-size:40px;line-height:1.1;margin:12px 0 16px;overflow-wrap:anywhere}
+.detail-new{display:inline-block;background:var(--blush);color:var(--rose);font-size:9px;letter-spacing:1px;padding:3px 10px;margin-top:10px}
+.product-short-description{color:var(--muted);font-size:12px;line-height:1.8}
+.detail-prices{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.detail-prices strong{font-size:24px;font-weight:500}
+.detail-prices s{color:var(--muted);font-size:12px}
+#product-discount{font-size:9px;color:var(--rose);background:var(--blush);padding:4px 8px}
+.detail-demo-note{border-top:1px solid var(--line);padding-top:16px;margin-top:18px}
+#product-options fieldset{border:0;padding:0;margin:24px 0 0;min-width:0}
+#product-options legend{font-size:12px;font-weight:500;margin-bottom:10px;padding:0}
+#product-options legend span{font-size:10px;font-weight:400;color:var(--muted);margin-left:8px}
+.product-options{display:flex;flex-wrap:wrap;gap:10px}
+.product-option{position:relative;cursor:pointer;max-width:100%}
+.product-option input{position:absolute;width:1px;height:1px;opacity:0}
+.option-face{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 13px;border:1px solid var(--line);background:var(--paper);font-size:11px}
+.product-option input:checked+.option-face{border-color:var(--rose);background:var(--blush);color:var(--rose)}
+.product-option input:focus-visible+.option-face{outline:2px solid var(--rose);outline-offset:3px}
+.product-option input:disabled+.option-face{color:var(--muted);background:#f1ece7;cursor:not-allowed}
+.color-swatch{width:17px;height:17px;border-radius:50%;border:1px solid #75685e40;flex-shrink:0}
+.size-option .option-face{min-width:48px;flex-direction:column;gap:1px}
+.unavailable .option-face{text-decoration:line-through}
+.size-unavailable{font-size:7px;text-decoration:none}
+#size-guide-button{margin-top:12px}
+.stock-status{font-size:11px;color:var(--muted);margin:18px 0;min-height:36px}
+.quantity-label{font-size:11px;display:block;margin-bottom:8px}
+.quantity-control{display:flex;width:150px;height:46px;border:1px solid var(--line)}
+.quantity-control button{width:46px;flex-shrink:0;border:0;background:transparent;font-size:19px}
+.quantity-control input{width:56px;min-width:0;text-align:center;border:0;background:transparent;font-size:13px;appearance:textfield;-moz-appearance:textfield}
+.quantity-control input::-webkit-inner-spin-button,.quantity-control input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.product-purchase-actions{display:flex;gap:12px;margin-top:20px}
+.product-purchase-actions .button{flex:1;gap:15px;min-height:52px;padding-inline:18px}
+.detail-favorite{width:52px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);background:transparent}
+.detail-favorite[aria-pressed="true"]{color:var(--rose);border-color:var(--rose)}
+.detail-favorite[aria-pressed="true"] svg{fill:var(--rose)}
+button:disabled{opacity:.5}
+.product-feedback{font-size:12px;color:var(--rose);margin-top:12px}
+.product-description{border-top:1px solid var(--line);padding-top:26px;margin-top:30px}
+.product-description h2{font-size:29px;margin-bottom:12px}
+.product-description p{font-size:12px;color:var(--muted);line-height:1.9}
+.product-not-found{padding-block:65px;text-align:center}
+.product-not-found h1{font-size:43px;margin:18px 0}
+.product-not-found p:not(.eyebrow){font-size:12px;color:var(--muted);max-width:440px;margin-inline:auto}
+.product-not-found .button{margin-top:25px}
+dialog{background:var(--paper);color:var(--ink);border:1px solid var(--line);padding:22px;max-width:calc(100% - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+dialog::backdrop{background:#302a2860}
+body:has(dialog[open]){overflow:hidden}
+.dialog-heading{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.dialog-heading h2{font-size:32px;margin-top:7px}
+.dialog-close{font-size:28px;width:44px;flex-shrink:0}
+.size-guide-dialog{width:560px}
+.size-guide-dialog>p{font-size:11px;color:var(--muted)}
+.size-table-wrapper{overflow-x:auto;margin-top:18px}
+.size-table{width:100%;border-collapse:collapse;font-size:10px;text-align:center;table-layout:fixed}
+.size-table caption{font-size:9px;text-align:left;color:var(--muted);padding-bottom:10px}
+.size-table th,.size-table td{padding:12px 4px;border-bottom:1px solid var(--line)}
+.size-table thead{background:var(--blush)}
+.size-table th{font-weight:500}
+.cart-dialog{position:fixed;inset:0 0 0 auto;width:440px;height:100dvh;max-height:100dvh;max-width:100%;margin:0;border:0;border-left:1px solid var(--line);padding:24px 18px}
+.cart-items{list-style:none;padding:0;margin:22px 0}
+.cart-item{display:grid;grid-template-columns:70px minmax(0,1fr);gap:14px;border-bottom:1px solid var(--line);padding-block:18px}
+.cart-item-art{height:95px;position:relative;overflow:hidden;display:grid;place-items:center}
+.cart-item-art .garment{position:absolute;transform:scale(.45)}
+.cart-item-art img{width:100%;height:100%;object-fit:cover}
+.cart-item-info{min-width:0}
+.cart-item-info h3{font-size:12px;font-weight:500;overflow-wrap:anywhere;margin-bottom:6px}
+.cart-item-info p{font-size:10px;color:var(--muted);margin-top:3px}
+.cart-item-info strong{display:block;font-size:12px;margin-top:6px;font-weight:500}
+.cart-remove{font-size:10px;min-height:44px;color:var(--rose);border-bottom:0;text-decoration:underline}
+.cart-total{display:flex;justify-content:space-between;gap:15px;font-size:12px;margin-block:22px;border-top:1px solid var(--line);padding-top:20px;flex-wrap:wrap}
+.cart-view{width:100%;margin-top:20px}
+.cart-empty{padding:40px 0;text-align:center;font-size:12px;color:var(--muted)}
+.cart-empty>span{font-size:38px;color:var(--rose)}
+.cart-empty .text-button{display:inline-block;margin-top:10px}
+.full-cart{max-width:900px}
+#full-cart-count{font-size:11px;color:var(--muted)}
+.full-cart .cart-item{grid-template-columns:85px minmax(0,1fr)}
+.full-cart .cart-item-art{height:115px}
+@media(min-width:375px){.gallery-main{height:410px}.product-details-copy h1{font-size:45px}}
+@media(min-width:768px){.product-detail{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}.gallery-main{height:470px}.gallery-main .garment{transform:scale(1.1)}.gallery-main .garment-blouse{transform:scale(1)}.product-details-copy h1{font-size:43px}}
+@media(min-width:1100px){.product-detail{gap:75px;padding-block:10px 80px}.gallery-main{height:600px}.gallery-main .garment{width:240px;height:350px}.gallery-main .garment-blouse{width:290px;height:220px}.gallery-main .garment-pants{width:210px}.gallery-main .garment-skirt{height:260px}.gallery-main .garment-shorts{height:180px}.product-details-copy h1{font-size:55px}.gallery-thumbnail{width:76px;height:95px}}
+.garment-skirt{clip-path:polygon(25% 0,75% 0,100% 100%,0 100%)}
+.garment-shorts{clip-path:polygon(15% 0,85% 0,100% 100%,55% 100%,50% 40%,45% 100%,0 100%)}

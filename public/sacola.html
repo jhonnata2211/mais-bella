@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6efeb">
+  <meta name="description" content="Mais Bella — coleção demonstrativa de moda feminina. Sem venda ou checkout nesta etapa.">
+  <title>Sacola local — Mais Bella</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/app.js" defer></script>
+</head>
+<body data-page="cart">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <div class="announcement">Frete para todo o Brasil <span aria-hidden="true">♡</span></div>
+  <header class="site-header">
+    <div class="header-main container">
+      <button type="button" class="icon-button menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-principal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <a class="logo" href="/index.html#inicio" aria-label="Mais Bella, início"><span class="logo-prefix">use.</span>maisbella<span class="logo-heart">♥</span></a>
+      <span class="header-note">MODA PARA SER VOCÊ</span>
+      <div class="header-actions">
+        <button type="button" class="icon-button" id="search-toggle" aria-label="Pesquisar produtos" aria-expanded="false" aria-controls="search-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+        <button type="button" class="icon-button account-button" id="account-button" aria-label="Minha conta, demonstração"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button>
+        <button type="button" class="icon-button" id="favorites-toggle" aria-label="Mostrar favoritos" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21 3 12C-3 5 7-1 12 6c5-7 15-1 9 6Z"/></svg><span class="counter" id="favorite-count" hidden>0</span></button>
+        <button type="button" class="icon-button" id="bag-button" aria-label="Sacola demonstrativa, 0 itens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l2 14H3ZM8 8V6a4 4 0 0 1 8 0v2"/></svg><span class="counter" id="bag-count">0</span></button>
+      </div>
+    </div>
+    <nav class="navigation" id="menu-principal" aria-label="Menu principal"><div class="container nav-links"><a href="/index.html#inicio">Início</a><a href="/catalogo.html?novidades=1#catalogo">Novidades</a><a href="/catalogo.html?categoria=Vestidos#catalogo" data-category="Vestidos">Vestidos</a><a href="/catalogo.html?categoria=Conjuntos#catalogo" data-category="Conjuntos">Conjuntos</a><a href="/catalogo.html?categoria=Blusas#catalogo" data-category="Blusas">Blusas</a><a href="/catalogo.html?categoria=Cal%C3%A7as#catalogo" data-category="Calças">Calças</a><a href="/catalogo.html?categoria=Saias%20%26%20Shorts#catalogo" data-category="Saias & Shorts">Saias &amp; Shorts</a><a href="/catalogo.html?promocoes=1#catalogo" data-category="Promoções">Promoções <span class="tiny-heart">♡</span></a></div></nav>
+    <form class="search-panel container" id="search-panel" role="search" hidden><label for="search">O que combina com você?</label><div class="search-field"><input id="search" type="search" placeholder="Busque por nome, categoria ou descrição"><button class="button" type="submit">Buscar</button></div></form>
+  </header>
+  <main id="conteudo">
+    <section class="catalog-intro"><div class="container"><p class="eyebrow">SUAS ESCOLHAS, SEU ESTILO</p><h1>Minha sacola</h1><p>Sacola local demonstrativa. Não há compra, reserva ou checkout.</p></div></section>
+    <section class="section container full-cart" aria-label="Itens da sacola"><p id="full-cart-count" role="status" aria-live="polite">Carregando sacola…</p><div id="full-cart-content"></div><a class="button" id="continue-shopping" href="/catalogo.html">Continuar explorando <span aria-hidden="true">↗</span></a><p class="demo-note">Preços e estoques fictícios. Frete e condições comerciais não são calculados.</p><noscript><p>Ative o JavaScript para visualizar os itens salvos neste navegador.</p></noscript></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-grid"><div class="footer-brand"><a class="logo" href="/index.html#inicio"><span class="logo-prefix">use.</span>maisbella<span class="logo-heart">♥</span></a><p>Moda com leveza, personalidade<br>e um toque de carinho.</p><span class="eyebrow">MAIS ESTILO. MAIS VOCÊ.</span></div><div><h3>Institucional</h3><button type="button" data-info="A Mais Bella é uma boutique de moda feminina em construção.">Sobre a Mais Bella</button><a href="/catalogo.html">Nossa coleção</a><a href="/index.html#mais-vendidos">Mais vendidos</a></div><div><h3>Atendimento</h3><button type="button" data-info="O atendimento personalizado estará disponível na inauguração da loja.">Fale com a gente</button><button type="button" data-info="Informações sobre envios e prazos serão publicadas na inauguração.">Envios e entregas</button><button type="button" data-info="As condições de trocas e devoluções serão publicadas antes do início das vendas.">Trocas e devoluções</button></div><div><h3>Políticas</h3><button type="button" data-info="Esta demonstração não coleta dados pessoais nem utiliza cookies de rastreamento. Favoritos e itens da sacola são salvos apenas neste navegador. As fontes podem ser carregadas pelo Google Fonts.">Privacidade</button><button type="button" data-info="Esta é uma vitrine demonstrativa. Não há vendas, pagamento ou checkout disponíveis.">Termos de uso</button><h3 class="social-title">Redes sociais</h3><span class="social-placeholder">Instagram · Pinterest<br><small>Em breve</small></span></div></div><div class="container footer-bottom"><p>© <span id="year">2026</span> Mais Bella · Vitrine demonstrativa</p><p>Pagamento previsto: Pix · Cartões · Boleto</p><span>Feito com carinho ♡</span></div></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

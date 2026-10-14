@@ -13,7 +13,7 @@ export const products = [
     shortDescription: 'Silhueta fluida com delicados detalhes na cintura.',
     description: 'Modelo fictício de vestido midi com alças e caimento leve, pensado para composições elegantes. A descrição, as opções e os valores são apenas demonstrativos.',
     category: 'Vestidos', price: 229.90, promotionalPrice: 189.90,
-    images: [illustration('Vestido midi Essência', 'rose', 'dress')],
+    images: [illustration('Vestido midi Essência', 'rose', 'dress'), illustration('Vestido midi Essência — composição em nude', 'cream', 'dress')],
     colors: ['Rosa queimado', 'Nude'], sizes: ['P', 'M', 'G'],
     variations: variations(['Rosa queimado', 'Nude'], ['P', 'M', 'G']),
     featured: true, isNew: true, bestSeller: true, active: true, createdAt: '2026-10-12'
@@ -23,7 +23,7 @@ export const products = [
     shortDescription: 'Duas peças de inspiração natural e corte suave.',
     description: 'Conjunto fictício de blusa e calça com textura inspirada em linho e proposta de alfaiataria leve. Não é um produto disponível para venda.',
     category: 'Conjuntos', price: 259.90,
-    images: [illustration('Conjunto linho Serena', 'sand', 'set')],
+    images: [illustration('Conjunto linho Serena', 'sand', 'set'), illustration('Conjunto linho Serena — composição em off-white', 'cream', 'set')],
     colors: ['Bege', 'Off-white'], sizes: ['P', 'M', 'G', 'GG'],
     variations: variations(['Bege', 'Off-white'], ['P', 'M', 'G', 'GG']),
     featured: true, isNew: true, bestSeller: true, active: true, createdAt: '2026-10-11'
