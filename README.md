@@ -352,7 +352,7 @@ A senha usa `scrypt` nativo do Node, N=32768, r=8, p=3, sal aleatório de 16 byt
 | `APP_ORIGIN` | Origem exata, incluindo protocolo/porta e sem barra final; local: `http://localhost:3000` |
 | `NODE_ENV` | Use `production` no deploy para exigir as proteções de produção |
 | `SEED_DEMO` | `false` em produção; novos bancos operacionais devem iniciar vazios |
-| `TRUST_PROXY` | Ausente por padrão. Aceita somente `loopback`, se houver proxy HTTPS confiável na mesma máquina |
+| `TRUST_PROXY` | Ausente por padrão. Aceita `loopback` para proxy local ou `railway` nas condições da etapa 011 |
 | `PORT`, `DB_PATH` | Mantêm as regras da etapa anterior; nunca ponha o banco em `public` |
 
 Para acessar pelo IP na rede local, ajuste `APP_ORIGIN` para o endereço exato usado no navegador e reinicie. Não transmita credenciais por HTTP em redes não confiáveis. Para mudar a porta, ajuste também `APP_ORIGIN`. Não configure `TRUST_PROXY` sem o proxy descrito acima.
@@ -395,7 +395,7 @@ A edição de produto substitui as listas de filhos atomicamente e mantém seu I
 
 ### Produção e validação
 
-Produção recusa ausência de credenciais/segredo válidos, origem sem HTTPS e `SEED_DEMO=true`. As rotas administrativas recusam transporte HTTP. Helmet ativa HSTS e upgrade de HTTPS em produção. Como o servidor Node atual serve HTTP, termine TLS num proxy **confiável em loopback**, configure `TRUST_PROXY=loopback`, repasse os headers corretos e bloqueie acesso externo direto à porta do Node. Não confie em headers de proxies arbitrários. Mantenha HTTPS de ponta a ponta até o navegador.
+Produção recusa ausência de credenciais/segredo válidos, origem sem HTTPS e `SEED_DEMO=true`. As rotas administrativas recusam transporte HTTP. Helmet ativa HSTS e upgrade de HTTPS em produção. Como o servidor Node atual serve HTTP, termine TLS num proxy confiável: local com `TRUST_PROXY=loopback` ou ingresso Railway com `TRUST_PROXY=railway`, nas condições da etapa 011. Bloqueie acesso externo direto à porta Node. Não confie em headers de proxies arbitrários. Mantenha HTTPS de ponta a ponta até o navegador.
 
 ```sh
 npm test
@@ -641,7 +641,7 @@ As instruções desta seção são as operacionais atuais; as etapas anteriores 
 | `ADMIN_PASSWORD_HASH` | Hash scrypt inicial, nunca senha em texto; valor privado gerado pela ferramenta |
 | `SESSION_SECRET` | Segredo privado com pelo menos 32 bytes aleatórios em hexadecimal |
 | `SEED_DEMO` | `false` por padrão em todos os ambientes; `true` é recusado em produção |
-| `TRUST_PROXY` | Ausente por padrão; só aceita `loopback` para proxy confiável na mesma máquina |
+| `TRUST_PROXY` | Ausente por padrão; `loopback` para proxy local ou `railway` conforme a etapa 011 |
 | `MAINTENANCE_MODE` | Somente comandos offline; `true` declara que o responsável parou o servidor |
 | `BACKUP_DIR` | Somente backup: diretório novo fora do projeto, do banco e dos uploads; pai deve existir |
 
@@ -665,7 +665,7 @@ NODE_ENV=production SEED_DEMO=false npm start
 
 A produção recusa credenciais ausentes/inválidas, segredo fraco, origem HTTP, seed habilitado e trust proxy genérico. Cookies usam Secure, HttpOnly, SameSite=Strict e prefixo `__Host-`; CSRF, expiração de 30 minutos, scrypt e rate limiting permanecem. O HTML do login é público; **dados e operações administrativas exigem sessão**, e escritas também exigem origem exata e CSRF. Não há cadastro público de administradores.
 
-O processo HTTP atual precisa de um terminador TLS para atender a origem HTTPS. `TRUST_PROXY=loopback` só serve se o proxy confiável estiver na mesma máquina e a porta Node não estiver exposta diretamente à internet. O proxy deve substituir corretamente os headers de encaminhamento, incluindo IP e protocolo. Não use `trust proxy=true` para contornar configuração. Um provedor com outra topologia exigirá revisão explícita antes do deploy. Consulte a [documentação de proxies do Express](https://expressjs.com/en/guide/behind-proxies/).
+O processo HTTP atual precisa de um terminador TLS para atender a origem HTTPS. `TRUST_PROXY=loopback` só serve se o proxy confiável estiver na mesma máquina e a porta Node não estiver exposta diretamente à internet. O proxy deve substituir corretamente os headers de encaminhamento, incluindo IP e protocolo. Não use `trust proxy=true` para contornar configuração. A topologia do Railway é tratada pelo modo explícito descrito na etapa 011; outros provedores exigem revisão antes do deploy. Consulte a [documentação de proxies do Express](https://expressjs.com/en/guide/behind-proxies/).
 
 ### Conteúdo e loja vazia
 
@@ -749,3 +749,40 @@ Antes de publicar:
 Limitações mantidas: uma instância, sessões/rate limiting em memória (reinício encerra sessões e zera contadores), sem MFA ou recuperação por e-mail; manutenção/backup exigem parada operacional, sem agendamento/cópia externa automática. Uploads continuam sem reencode/remoção de EXIF; revise metadados de fotos reais antes de publicar. Não há deploy ou garantia de disponibilidade sem validar a hospedagem futura. A loja segue sem pagamento online, conta de cliente, reserva de estoque ou pedidos persistentes.
 
 Validação automatizada da etapa 010: **148 testes aprovados**, sem falhas (136 anteriores e 12 novos). A migration 002 será aplicada automaticamente na próxima inicialização; ela adiciona a tabela de hashes administrativos sem remover dados do catálogo. A conferência visual e a operação das ferramentas pelo responsável técnico ainda devem ser validadas em ambiente isolado antes do deploy.
+
+## HTTPS atrás do Railway — MAISBELLA-011
+
+O Railway termina TLS no ingresso e encaminha HTTP pela rede interna. Esse proxy não precisa ter endereço loopback; por isso TRUST_PROXY=loopback pode causar “HTTPS obrigatório” mesmo quando o navegador usa HTTPS. O código mantém a exigência de HTTPS e adiciona um modo específico, sem alterar interface, banco, sessões ou cookies.
+
+Configure nas variáveis **do serviço da aplicação** no Railway:
+
+```dotenv
+NODE_ENV=production
+APP_ORIGIN=https://mais-bella-production.up.railway.app
+TRUST_PROXY=railway
+SEED_DEMO=false
+```
+
+Mantenha ADMIN_USER, ADMIN_PASSWORD_HASH e SESSION_SECRET privados já configurados, além de DB_PATH e UPLOAD_DIR no volume persistente existente. Não gere nem troque credenciais para corrigir o HTTPS. O Railway fornece PORT, RAILWAY_PROJECT_ID e RAILWAY_SERVICE_ID; não invente esses identificadores manualmente. O modo railway exige os dois IDs de runtime e produção e recusa a configuração se houver variáveis de TCP Proxy (RAILWAY_TCP_PROXY_DOMAIN, RAILWAY_TCP_PROXY_PORT ou RAILWAY_TCP_APPLICATION_PORT). Não alterei as variáveis do serviço publicado nesta execução.
+
+### Fronteira de confiança e cadeia de proxies
+
+- **Pré-condição de rede:** todo tráfego à porta HTTP Node deve passar pelo ingresso HTTP Railway. Não habilite TCP Proxy para essa porta, acesso direto por outro ingresso ou serviços privados não confiáveis capazes de enviar requisições diretamente. Verifique também a rede privada do projeto. Se essa condição não puder ser garantida, este modo não é apropriado; será necessário um ingresso restrito com allowlist de peers/attestation antes de confiar em cabeçalhos.
+- O modo é opt-in por ambiente; a presença de X-Railway-Edge, Host, Origin, X-Forwarded-Host ou qualquer header não o ativa. IDs de runtime evitam ativação acidental fora da plataforma, **não autenticam um socket**.
+- Express confia somente no salto adjacente (trust proxy=1) nesse modo. Não usa trust proxy=true, não percorre ilimitadamente X-Forwarded-For e não adivinha faixas IP privadas ou uma quantidade de proxies internos da plataforma. A confiança é no ingresso gerenciado, não em um IP alegado pelo cliente.
+- O contrato esperado do ingresso é **substituir** X-Forwarded-Proto pelo protocolo HTTPS e X-Real-IP pelo IP remoto observado, descartando valores enviados pelo cliente. A documentação Railway apresenta esses campos como protocolo e IP remoto; não especifica uma cadeia X-Forwarded-For confiável. A aplicação ignora essa cadeia no modo railway e usa somente um X-Real-IP válido para determinar req.ip e as chaves do rate limit. Se ausente/inválido, usa o IP do socket, agrupando tentativas conservadoramente. Com CDN adicional, esse IP pode ser o da CDN; não confie automaticamente em headers anteriores para obter o usuário original.
+- Rotas administrativas em produção exigem req.secure e, no transporte interno HTTP, um único X-Forwarded-Proto=https. Campo ausente, http ou lista como “https, http” é recusado; Express normalmente leria o primeiro valor da lista. Não se seleciona “algum https” dentro de uma cadeia potencialmente forjada. TLS direto continua válido sem esse header.
+- Sem TRUST_PROXY, cabeçalhos encaminhados não provam HTTPS; com loopback, um peer externo continua não confiável mesmo se alegar IP loopback em X-Forwarded-For. Desenvolvimento local continua HTTP. O modo railway não deve ser copiado para um VPS exposto diretamente à internet.
+
+A aplicação não pode distinguir criptograficamente um cliente direto de um proxy apenas por headers. A garantia contra falsificação no modo railway depende da exclusividade do ingresso e da substituição dos campos acima. O bloqueio de TCP Proxy é uma proteção adicional de configuração, não uma prova de isolamento da rede. Reavalie essa fronteira se a topologia mudar.
+
+Fontes: [especificações do ingresso Railway](https://docs.railway.com/networking/public-networking/specs-and-limits), [fluxo da rede Railway](https://docs.railway.com/networking/edge-networking), [variáveis de runtime](https://docs.railway.com/variables/reference) e [trust proxy do Express](https://expressjs.com/en/guide/behind-proxies/).
+
+### Validação após atualizar o serviço
+
+1. Reinicie/republique somente após revisar esta alteração e as condições de rede. Aplique as variáveis acima no serviço correto.
+2. Sem cookie de login, GET /api/admin/session pela URL HTTPS deve retornar **401 “Sessão ausente ou expirada”**, em vez de 403 “HTTPS obrigatório”. Isso é o comportamento esperado, não uma abertura do painel sem autenticação.
+3. Entre pelo painel. Confira sessão 200, cookie __Host-mb_admin com Secure/HttpOnly/SameSite=Strict, edição protegida por CSRF e logout. Origin deve continuar exatamente igual a APP_ORIGIN. Não reduza Secure ou aceite origens adicionais para contornar falhas.
+4. Verifique no ambiente real que campos encaminhados enviados manualmente pelo cliente são substituídos pelo ingresso. Não registre cookies, senhas ou tokens em diagnósticos. Confira limites de login e ausência de acesso direto/TCP à porta Node.
+
+Testes novos emulam um ingresso HTTP que termina TLS e substitui headers, usam SQLite em memória e incluem peer não loopback, falsificação em conexão não confiável, cadeias ambíguas, cookies/CSRF/Origin/logout e evasão do rate limit. Não acessam o serviço publicado nem alteram seu banco/credenciais. Execute npm test e git diff --check; a validação do contrato efetivo do ingresso no Railway continua necessária.

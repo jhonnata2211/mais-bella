@@ -11,7 +11,7 @@ function createApp({ db, config = require('./config').getConfig(), service = new
   const { MediaService, FILE_NAME } = require('./services/media-service');
   const media = new MediaService(config.uploadsPath || path.join(__dirname, '..', 'data', 'uploads'));
   app.disable('x-powered-by');
-  if (config.admin.trustProxy) app.set('trust proxy', 'loopback');
+  require('./middleware/proxy-policy').configureProxy(app, config.admin.trustProxy);
   app.set('query parser', 'simple');
   app.use(helmet({
     // Acesso local HTTP no Termux; HTTPS/HSTS deve ser configurado no deploy.

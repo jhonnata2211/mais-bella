@@ -17,7 +17,8 @@ function adminRoutes(db, config, media) {
   router.use((req,res,next) => {
     res.set('Cache-Control','no-store');
     if (!config.enabled) return res.status(503).json({ error: 'Administração não configurada' });
-    if (config.production && !req.secure) return res.status(403).json({ error: 'HTTPS obrigatório' });
+    // Express aceita o primeiro valor de X-Forwarded-Proto; listas ambíguas não comprovam TLS.
+    if (config.production && (!req.secure || !req.socket.encrypted && req.get('x-forwarded-proto')?.trim() !== 'https')) return res.status(403).json({ error: 'HTTPS obrigatório' });
     // Origin obrigatório em todas as escritas, inclusive login (login CSRF).
     if (!['GET','HEAD','OPTIONS'].includes(req.method) && (req.get('origin') !== config.origin || (!(req.method === 'POST' && req.path === '/images') && !req.is('application/json')))) return res.status(403).json({ error: 'Origem ou formato não autorizado' });
     const cookie = (req.headers.cookie || '').split(';').map(c => c.trim()).find(c => c.startsWith(cookieName + '='));

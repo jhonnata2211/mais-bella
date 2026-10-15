@@ -28,8 +28,10 @@ function getConfig(env = process.env) {
   try { origin = new URL(env.APP_ORIGIN || 'http://localhost:' + port).origin; } catch { throw new Error('APP_ORIGIN inválida.'); }
   if (env.APP_ORIGIN && origin !== env.APP_ORIGIN) throw new Error('APP_ORIGIN deve conter somente a origem.');
   if (production && (!env.APP_ORIGIN || !origin.startsWith('https://') || env.SEED_DEMO === 'true')) throw new Error('Produção exige HTTPS e seed desativado.');
-  if (env.TRUST_PROXY && env.TRUST_PROXY !== 'loopback') throw new Error('TRUST_PROXY deve ser loopback.');
-  const admin = { enabled: configured, user: env.ADMIN_USER, passwordHash: env.ADMIN_PASSWORD_HASH, secret: env.SESSION_SECRET, origin, production, trustProxy: env.TRUST_PROXY === 'loopback', sessionMs: 30 * 60 * 1000 };
+  if (env.TRUST_PROXY && !['loopback', 'railway'].includes(env.TRUST_PROXY)) throw new Error('TRUST_PROXY deve ser loopback ou railway.');
+  if (env.TRUST_PROXY === 'railway' && (!production || !env.RAILWAY_PROJECT_ID || !env.RAILWAY_SERVICE_ID)) throw new Error('O modo de proxy railway exige produção em um serviço Railway.');
+  if (env.TRUST_PROXY === 'railway' && (env.RAILWAY_TCP_PROXY_DOMAIN || env.RAILWAY_TCP_APPLICATION_PORT || env.RAILWAY_TCP_PROXY_PORT)) throw new Error('Não exponha a porta HTTP por TCP Proxy no modo railway.');
+  const admin = { enabled: configured, user: env.ADMIN_USER, passwordHash: env.ADMIN_PASSWORD_HASH, secret: env.SESSION_SECRET, origin, production, trustProxy: env.TRUST_PROXY || false, sessionMs: 30 * 60 * 1000 };
   return { port, databasePath, uploadsPath, environment, admin, seedDemo: env.SEED_DEMO === 'true' };
 }
 module.exports = { root, loadEnvironment, getConfig };
