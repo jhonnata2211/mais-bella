@@ -1,6 +1,7 @@
 import { products } from './data/products.mjs';
 import { CART_KEY, createCartStore } from './cart.mjs';
 import { initCartPanel } from './cart-panel.mjs';
+import { initFloatingWhatsApp } from './whatsapp-ui.mjs';
 
 export const FAVORITES_KEY = 'maisbella:favorites:v1';
 export function readFavorites(storage, source = products) {
@@ -143,5 +144,6 @@ export function initStorefront({ onSearch, onCategory, onFavorites, onCartChange
   syncFavorites();
   const cartPanel = initCartPanel(cart, notify);
   cart.subscribe(() => onCartChange?.());
+  initFloatingWhatsApp(notify);
   return { favorites, notify, syncFavorites, setFavoritesMode, cart, cartPanel };
 }

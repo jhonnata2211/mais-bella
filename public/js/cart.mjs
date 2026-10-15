@@ -27,6 +27,19 @@ export function addItem(items, product, selection, quantity = 1) {
   return { ok: true, items: next, message: 'Peça adicionada à sacola local. Nenhuma compra foi realizada.' };
 }
 
+export function updateItemQuantity(items, key, quantity, source = products) {
+  const item = items.find(entry => itemKey(entry) === key);
+  if (!item) return { ok: false, items, message: 'Este item não está mais na sacola.' };
+  const product = findProduct({ id: item.productId }, source);
+  const validation = validateSelection(product, item, quantity);
+  if (!validation.ok) return { ...validation, items };
+  return {
+    ok: true,
+    items: items.map(entry => itemKey(entry) === key ? { ...entry, quantity, price: effectivePrice(product) } : { ...entry }),
+    message: 'Quantidade atualizada na sacola.'
+  };
+}
+
 export const removeItem = (items, key) => items.filter(item => itemKey(item) !== key);
 
 export function readCart(storage, source = products) {
@@ -80,6 +93,13 @@ export function createCartStore(storage) {
       if (!result.ok) { emit(); return result; }
       const saved = save(result.items);
       return { ...result, persistent: saved, message: result.message + (saved ? '' : ' Armazenamento indisponível: os itens ficam apenas nesta página.') };
+    },
+    updateQuantity(key, quantity) {
+      if (persistent) items = readCart(storage);
+      const result = updateItemQuantity(items, key, quantity);
+      if (!result.ok) { emit(); return result; }
+      const saved = save(result.items);
+      return { ...result, persistent: saved, message: result.message + (saved ? '' : ' A alteração fica apenas nesta página.') };
     },
     remove(key) {
       if (persistent) items = readCart(storage);

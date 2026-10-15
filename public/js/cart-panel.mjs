@@ -1,17 +1,24 @@
 import { cartCount, cartSubtotal, itemKey } from './cart.mjs';
 import { escapeHTML, imageTone, money, productURL, productVisual } from './products.mjs';
 import { setupDialog } from './dialog.mjs';
+import { findProduct, getVariation } from './product-model.mjs';
 
-export function cartContent(items) {
-  if (!items.length) return '<div class="cart-empty"><span aria-hidden="true">♡</span><p>Sua sacola está vazia.</p><a class="text-button" href="/catalogo.html">Explorar a coleção ↗</a></div>';
-  return `<ul class="cart-items">${items.map(item => `<li class="cart-item">
-    <a class="cart-item-art tone-${imageTone(item.image)}" href="${escapeHTML(productURL(item))}" aria-label="Ver ${escapeHTML(item.name)}">${productVisual(item.image, item.name)}</a>
-    <div class="cart-item-info"><h3><a href="${escapeHTML(productURL(item))}">${escapeHTML(item.name)}</a></h3>
-      <p>${[item.color, item.size && `Tamanho ${item.size}`].filter(Boolean).map(escapeHTML).join(' · ')}</p>
-      <p>Quantidade: ${item.quantity} · ${money(item.price)} por peça</p><strong>${money(Math.round(item.price * 100) * item.quantity / 100)}</strong>
-      <button type="button" class="text-button cart-remove" data-remove-item="${escapeHTML(itemKey(item))}" aria-label="Remover ${escapeHTML(item.name)}, ${escapeHTML(item.color)}, tamanho ${escapeHTML(item.size)}">Remover</button>
-    </div>
-  </li>`).join('')}</ul><div class="cart-total"><span>Subtotal demonstrativo</span><strong>${money(cartSubtotal(items))}</strong></div>`;
+export function cartContent(items, { editable = false, showTotal = true } = {}) {
+  if (!items.length) return '<div class="cart-empty"><span aria-hidden="true">♡</span><h2>Sua sacola está esperando por você.</h2><p>Encontre as peças que combinam com a sua essência.</p><a class="button" href="/catalogo.html">Explorar coleção <span aria-hidden="true">↗</span></a></div>';
+  const rows = items.map(item => {
+    const key = escapeHTML(itemKey(item));
+    const product = findProduct({ id: item.productId });
+    const stock = getVariation(product, item)?.stock || 0;
+    const variationLabel = escapeHTML([item.name, item.color, item.size].filter(Boolean).join(', '));
+    const controls = editable ? `<div class="cart-quantity-control" role="group" aria-label="Quantidade de ${variationLabel}"><button type="button" data-cart-key="${key}" data-cart-delta="-1" aria-label="Diminuir quantidade de ${variationLabel}" ${item.quantity <= 1 ? 'disabled' : ''}>−</button><output aria-label="Quantidade atual">${item.quantity}</output><button type="button" data-cart-key="${key}" data-cart-delta="1" aria-label="Aumentar quantidade de ${variationLabel}" ${item.quantity >= stock ? 'disabled' : ''}>+</button></div><p class="cart-stock-note">Limite demonstrativo: ${stock} unidade(s)</p>` : '';
+    return `<li class="cart-item"><a class="cart-item-art tone-${imageTone(item.image)}" href="${escapeHTML(productURL(item))}" aria-label="Ver ${escapeHTML(item.name)}">${productVisual(item.image, item.name)}</a>
+      <div class="cart-item-info"><h3><a href="${escapeHTML(productURL(item))}">${escapeHTML(item.name)}</a></h3>
+        <p>${[item.color, item.size && `Tamanho ${item.size}`].filter(Boolean).map(escapeHTML).join(' · ')}</p>
+        <p>Quantidade: ${item.quantity} · Preço unitário: ${money(item.price)}</p><strong>Subtotal: ${money(Math.round(item.price * 100) * item.quantity / 100)}</strong>
+        ${controls}<button type="button" class="text-button cart-remove" data-remove-item="${key}" aria-label="Remover ${variationLabel}">Remover</button>
+      </div></li>`;
+  }).join('');
+  return `<ul class="cart-items">${rows}</ul>${showTotal ? `<div class="cart-total"><span>Subtotal demonstrativo</span><strong>${money(cartSubtotal(items))}</strong></div>` : ''}`;
 }
 
 export function initCartPanel(cart, notify) {

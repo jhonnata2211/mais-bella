@@ -4,6 +4,9 @@ import { escapeHTML, imageTone, money, productVisual } from './products.mjs';
 import { initStorefront } from './storefront.mjs';
 import { itemKey } from './cart.mjs';
 import { setupDialog } from './dialog.mjs';
+import { bindWhatsAppButton } from './whatsapp-ui.mjs';
+import { productQuestion, WHATSAPP_UNAVAILABLE, isStoreNumberValid } from './whatsapp.mjs';
+import { storeConfig } from './config.mjs';
 
 const swatches = { 'Rosa queimado': '#b37568', Nude: '#d4b79a', Bege: '#c8b994', 'Off-white': '#f5eee5', Chumbo: '#655d53' };
 
@@ -38,6 +41,12 @@ export function initProductPage() {
   document.querySelector('#product-installment').textContent = `3x de ${money(price / 3)} sem juros · condição fictícia`;
   document.querySelector('#product-favorite').dataset.favorite = product.id;
   store.syncFavorites();
+  const contactFeedback = document.querySelector('#product-contact-status');
+  if (!isStoreNumberValid(storeConfig.whatsappNumber)) contactFeedback.textContent = WHATSAPP_UNAVAILABLE;
+  bindWhatsAppButton(document.querySelector('#product-question'), () => productQuestion(product), message => {
+    contactFeedback.textContent = message;
+    store.notify(message);
+  });
 
   const images = product.images.length ? product.images : [{ type: 'illustration', alt: `Ilustração demonstrativa: ${product.name}` }];
   document.querySelector('#gallery-thumbnails').innerHTML = images.map((image, index) => `<button type="button" class="gallery-thumbnail tone-${imageTone(image)}" data-image-index="${index}" aria-label="Mostrar imagem ${index + 1}: ${escapeHTML(image.alt || product.name)}" aria-pressed="false">${productVisual(image, product.name)}</button>`).join('');

@@ -151,3 +151,87 @@ body:has(dialog[open]){overflow:hidden}
 @media(min-width:1100px){.product-detail{gap:75px;padding-block:10px 80px}.gallery-main{height:600px}.gallery-main .garment{width:240px;height:350px}.gallery-main .garment-blouse{width:290px;height:220px}.gallery-main .garment-pants{width:210px}.gallery-main .garment-skirt{height:260px}.gallery-main .garment-shorts{height:180px}.product-details-copy h1{font-size:55px}.gallery-thumbnail{width:76px;height:95px}}
 .garment-skirt{clip-path:polygon(25% 0,75% 0,100% 100%,0 100%)}
 .garment-shorts{clip-path:polygon(15% 0,85% 0,100% 100%,55% 100%,50% 40%,45% 100%,0 100%)}
+
+/* MAISBELLA-004: revisão da sacola e atendimento pelo WhatsApp. */
+.order-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:36px}
+.order-layout .full-cart{max-width:none;min-width:0}
+.full-cart .section-heading{flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+.full-cart .section-heading h2{font-size:31px}
+.order-layout .cart-items{margin-top:8px}
+.order-layout .cart-item{grid-template-columns:76px minmax(0,1fr);gap:14px}
+.order-layout .cart-item-art{height:106px}
+.order-layout .cart-item-info h3{font-size:14px}
+.order-layout .cart-item-info p{font-size:11px}
+.order-layout .cart-item-info strong{font-size:13px;margin-top:10px}
+.cart-quantity-control{display:inline-flex;align-items:center;border:1px solid var(--line);margin-top:14px;height:44px;vertical-align:middle}
+.cart-quantity-control button{width:44px;height:42px;border:0;background:transparent;font-size:18px}
+.cart-quantity-control output{width:38px;text-align:center;font-size:12px}
+.cart-quantity-control button:not(:disabled):hover{background:var(--blush)}
+.cart-item-info p.cart-stock-note{font-size:9px;color:var(--muted);margin-top:6px}
+.cart-empty h2{font-size:32px;line-height:1.15;margin:14px auto;max-width:340px}
+.cart-empty p{font-size:11px}
+.cart-empty .button{margin-top:22px;font-size:11px}
+.order-section{min-width:0;background:#f5efe9;padding:24px 18px;border:1px solid var(--line);align-self:start}
+.order-summary{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:26px}
+.order-summary>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-top:15px;font-size:12px}
+.order-summary>div strong{font-weight:500}
+#order-subtotal{font-size:23px}
+.order-summary>p:not(.eyebrow){font-size:10px;color:var(--muted);margin-top:14px}
+.order-section>h2{font-size:31px;line-height:1.1;max-width:350px}
+.order-intro{font-size:11px;color:var(--muted);margin-block:12px 22px}
+.order-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.order-section .filter-field label{color:var(--ink)}
+.filter-field textarea{font:12px/1.7 var(--sans);color:var(--ink);width:100%;min-width:0;max-width:100%;border:1px solid var(--line);padding:10px;background:var(--paper);resize:vertical}
+textarea:focus-visible{outline:2px solid var(--rose);outline-offset:5px}
+.field-help,.order-section .field-error{font-size:10px;margin-top:6px}
+.field-help{color:var(--muted)}
+.field-error{color:#8b3933}
+.order-section [aria-invalid="true"]{border-color:#8b3933}
+.order-section input[aria-invalid="true"]+.option-face{border-color:#8b3933}
+.receiving-fieldset{border:0;padding:0;margin:22px 0 0;min-width:0}
+.receiving-fieldset legend{font-size:11px;padding:0;margin-bottom:10px}
+.receiving-options{display:flex;flex-wrap:wrap;gap:10px}
+.receiving-options .option-face{min-width:95px}
+.receiving-info{font-size:11px;color:var(--muted);background:var(--paper);border-left:2px solid #c6a397;padding:12px;margin-top:14px}
+.delivery-note{margin-top:18px}
+.delivery-note label span{color:var(--muted)}
+.order-privacy-note{font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:20px;margin-top:24px}
+.whatsapp-config-status{font-size:11px;line-height:1.7;color:var(--rose);margin-top:16px}
+.whatsapp-order-button{width:100%;text-align:center;min-height:56px;gap:12px;line-height:1.6;margin-top:16px;background:var(--rose);border-color:var(--rose);padding-inline:12px}
+.whatsapp-order-button:disabled{opacity:.65;cursor:not-allowed}
+.order-errors{border:1px solid #b77c72;background:#f5e5df;padding:12px;font-size:11px;color:#7a3730;margin-bottom:20px}
+.product-contact{margin-top:20px}
+.product-contact .demo-note{max-width:400px}
+.product-contact button[aria-disabled="true"]{color:var(--muted)}
+/* Filho direto de body: fora dos contextos locais de banners, cards e ilustrações.
+   Sem listeners de scroll, ocultação por colisão, transform ou promoção de camada forçada. */
+.has-whatsapp-contact{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.has-whatsapp-contact :is(a,button,input,select,textarea){scroll-margin-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.whatsapp-floating{
+  position:fixed;
+  right:calc(16px + env(safe-area-inset-right,0px));
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  z-index:1000;
+  display:grid;
+  place-items:center;
+  width:56px;
+  height:56px;
+  padding:13px;
+  border:1px solid #128c7e;
+  border-radius:50%;
+  background:#25d366;
+  color:#fff;
+  box-shadow:0 3px 12px #00000026;
+  transition:none;
+  animation:none;
+}
+.whatsapp-floating svg{display:block;width:28px;height:28px;fill:currentColor;stroke:none}
+.whatsapp-floating:focus-visible{outline:3px solid #075e54;outline-offset:4px}
+@media(hover:hover){.whatsapp-floating:hover{background:#128c7e}}
+/* Modais nativos mantêm a prioridade e o foco; não há ocultação durante scroll comum. */
+body:has(dialog[open]) .whatsapp-floating{visibility:hidden;pointer-events:none}
+.has-whatsapp-contact .toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+@media(min-width:600px){.order-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.order-section{padding:30px}.order-layout .cart-item{grid-template-columns:95px minmax(0,1fr);gap:20px}.order-layout .cart-item-art{height:128px}}
+@media(min-width:1050px){.order-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:55px}.order-section{padding:28px 24px}.order-fields{grid-template-columns:minmax(0,1fr)}.order-layout .cart-item-info h3{font-size:15px}}
+@media(min-width:1250px){.order-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.order-layout .full-cart .section-heading h2{font-size:29px}.order-section{padding-inline:16px}.whatsapp-order-button{font-size:11px}}
