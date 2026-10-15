@@ -1,9 +1,10 @@
+import { FAVORITES_KEY, clearShoppingData, confirmPrivacyAction } from './privacy.mjs';
+export { FAVORITES_KEY } from './privacy.mjs';
 import { products } from './data/products.mjs';
 import { CART_KEY, createCartStore } from './cart.mjs';
 import { initCartPanel } from './cart-panel.mjs';
 import { initFloatingWhatsApp } from './whatsapp-ui.mjs';
 
-export const FAVORITES_KEY = 'maisbella:favorites:v1';
 export function readFavorites(storage, source = products) {
   try {
     const saved = JSON.parse(storage?.getItem(FAVORITES_KEY) || '[]');
@@ -139,6 +140,17 @@ export function initStorefront({ onSearch, onCategory, onFavorites, onCartChange
     readFavorites(storage).forEach(id => favorites.add(id));
     syncFavorites();
     onFavorites?.({ changed: true });
+  });
+  let clearingShopping = false;
+  for (const button of document.querySelectorAll('[data-clear-shopping]')) button.addEventListener('click', async () => {
+    if (clearingShopping) return;
+    clearingShopping = true;
+    try {
+      const result = await clearShoppingData({ cart, favorites, storage, confirm: () => confirmPrivacyAction('Limpar sacola e favoritos?', 'As escolhas serão removidas deste navegador, inclusive nas outras abas. Isso não apaga conversas ou mensagens já abertas no WhatsApp.') });
+      if (!result.cleared) return;
+      syncFavorites(); onFavorites?.({ changed: true });
+      notify(result.persistent ? 'Sacola e favoritos limpos neste navegador.' : 'As escolhas foram limpas nesta página. Não foi possível confirmar a limpeza no armazenamento do navegador; limpe os dados do site nas configurações do navegador.');
+    } finally { clearingShopping = false; }
   });
   document.querySelector('#year').textContent = new Date().getFullYear();
   syncFavorites();

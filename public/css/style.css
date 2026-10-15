@@ -245,3 +245,6 @@ body:has(dialog[open]) .whatsapp-floating{visibility:hidden;pointer-events:none}
   body[data-page="product"].has-whatsapp-contact #open-added-cart{max-width:calc(100% - 72px)}
   body[data-page="cart"].has-whatsapp-contact .whatsapp-order-button{width:calc(100% - 64px);font-size:14px;gap:8px}
 }
+
+/* Ações de privacidade: mantêm os controles confortáveis no celular. */
+.privacy-actions{margin-block:18px}.privacy-actions button,[data-clear-shopping]{min-height:44px}.privacy-dialog{width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);padding:24px;background:var(--paper);color:var(--ink)}.privacy-dialog::backdrop{background:#30231f66}.privacy-dialog h2{font-size:30px}.privacy-dialog p{margin-block:18px}.privacy-dialog-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:20px}.privacy-dialog button{min-height:44px}

@@ -1,3 +1,4 @@
+import { clearPersonalForm, clearPersonalData, confirmPrivacyAction } from './privacy.mjs';
 import { products } from './data/products.mjs';
 import { hasDemoItems } from './commerce.mjs';
 import { reviewWhatsAppOrder } from './cart-checkout.mjs';
@@ -48,7 +49,7 @@ export function initCartPage() {
     document.querySelector('[data-demo-cart]').hidden = !hasDemoItems(items, products);
     document.querySelector('#whatsapp-config-status').textContent = configured
       ? 'Ao continuar, o WhatsApp será aberto para você revisar e enviar a mensagem.' : WHATSAPP_UNAVAILABLE;
-    if (!items.length) { form.reset(); updateReceiving(); showValidation = false; showErrors({}); }
+    if (!items.length) { clearPersonalForm(form); updateReceiving(); showValidation = false; showErrors({}); }
     else if (showValidation) showErrors(validateOrder(items, details()).errors);
     if (!checking && store.cart.getChanges().length) {
       cartFeedback('Atualizamos sua sacola. ' + store.cart.getChanges().join(' ') + ' Revise suas escolhas.');
@@ -79,6 +80,17 @@ export function initCartPage() {
     (controls.find(control => control.dataset.cartDelta === quantityButton.dataset.cartDelta) || controls[0] || document.querySelector('#continue-shopping')).focus({ preventScroll: true });
     cartFeedback(result.message);
   });
+  let clearingPersonal = false;
+  document.querySelector('#clear-personal-data').addEventListener('click', async () => {
+    if (checking || clearingPersonal) return;
+    clearingPersonal = true;
+    try {
+      if (!await clearPersonalData({ form, confirm: () => confirmPrivacyAction('Limpar seus dados?', 'Nome, telefone, cidade, bairro e observação serão apagados deste formulário. Sua sacola e seus favoritos serão mantidos. Isso não apaga mensagens no WhatsApp.') })) return;
+      submission++; updateReceiving(); showValidation = false; showErrors({});
+      document.querySelector('#order-status').textContent = 'Seus dados foram limpos deste formulário.';
+      document.querySelector('#order-name').focus();
+    } finally { clearingPersonal = false; }
+  });
   form.addEventListener('change', () => { updateReceiving(); if (showValidation) showErrors(validateOrder(store.cart.getItems(), details()).errors); });
   form.addEventListener('input', () => {
     document.querySelector('#order-status').textContent = '';
@@ -86,9 +98,10 @@ export function initCartPage() {
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    if (checking) return;
+    if (checking || clearingPersonal) return;
     const request = ++submission;
     checking = true; button.disabled = true; form.inert = true;
+    document.querySelectorAll('[data-clear-shopping]').forEach(control => { control.disabled = true; });
     form.setAttribute('aria-busy', 'true');
     button.textContent = 'Conferindo disponibilidade…';
     document.querySelector('#order-status').textContent = 'Conferindo preços e estoque antes de continuar…';
@@ -96,7 +109,9 @@ export function initCartPage() {
     try { result = await reviewWhatsAppOrder(store.cart, details()); }
     catch { result = { ok: false, errors: { cart: 'Não foi possível preparar a mensagem agora. Revise a sacola e tente novamente.' } }; }
     finally {
-      checking = false; form.inert = false; form.setAttribute('aria-busy', 'false');
+      checking = false; form.inert = false;
+      document.querySelectorAll('[data-clear-shopping]').forEach(control => { control.disabled = false; });
+      form.setAttribute('aria-busy', 'false');
       button.textContent = 'Finalizar pelo WhatsApp ↗';
       button.disabled = !isStoreNumberValid(storeConfig.whatsappNumber) || !store.cart.getItems().length;
     }
@@ -112,10 +127,10 @@ export function initCartPage() {
     document.querySelector('#order-status').textContent = 'Mensagem pronta. Confira os dados e confirme o envio dentro do WhatsApp.';
     window.location.assign(result.url);
   });
-  // Dados pessoais só permanecem no formulário durante esta visita, inclusive sem restauração por BFCache.
-  window.addEventListener('pagehide', () => { pageActive = false; submission++; form.reset(); updateReceiving(); showErrors({}); document.querySelector('#order-status').textContent = ''; showValidation = false; });
+  // Dados pessoais só permanecem no formulário durante esta visita, quando a página é encerrada; pagehide não é garantido em todo cenário móvel.
+  window.addEventListener('pagehide', () => { pageActive = false; submission++; clearPersonalForm(form); updateReceiving(); showErrors({}); document.querySelector('#order-status').textContent = ''; showValidation = false; });
   window.addEventListener('pageshow', () => { pageActive = true; });
-  form.reset();
+  clearPersonalForm(form);
   updateReceiving();
   render();
 }

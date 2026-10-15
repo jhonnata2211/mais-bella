@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { ValidationError } = require('./validation');
-const { validateImage } = require('./image-validation');
+const { sanitizeImage } = require('./image-privacy');
 const FILE_NAME = /^[a-f0-9]{32}\.(?:jpg|png|webp)$/;
 const UPLOAD_REFERENCE = /^\/uploads\/products\/([a-f0-9]{32}\.(?:jpg|png|webp))$/;
 const PENDING_TTL = 24 * 60 * 60 * 1000;
@@ -10,7 +10,9 @@ class MediaService {
   constructor(directory) { this.directory = directory; this.pending = path.join(directory, 'pending'); this.published = path.join(directory, 'products'); }
   directories() { for (const dir of [this.pending, this.published]) fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); }
   stage(buffer, mime) {
-    const extension = validateImage(buffer, mime);
+    const prepared = sanitizeImage(buffer, mime);
+    const extension = prepared.extension;
+    buffer = prepared.buffer;
     this.directories();
     const pending = fs.readdirSync(this.pending).filter(name => FILE_NAME.test(name));
     if (pending.length >= 200) throw new ValidationError('Há muitas fotos aguardando cadastro. Conclua os cadastros ou peça à equipe para liberar espaço.');

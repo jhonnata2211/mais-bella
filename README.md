@@ -553,7 +553,7 @@ Validação manual pendente em Android, mantendo o roteiro responsivo anterior:
 
 A primeira implantação exige **processo único e disco persistente**. Hospedagem com filesystem efêmero perderá as fotos em reinícios/deploys; réplicas sem volume compartilhado também não atendem esta arquitetura. Nenhum serviço externo foi integrado. Ao escolher a hospedagem, provisione um volume com backup ou migre `MediaService` para armazenamento de objetos, mantendo/adaptando as referências e a leitura pública.
 
-Esta versão valida assinatura/estrutura, mas **não faz decodificação completa, reencode, redução automática, thumbnails físicos, antivírus nem remoção de EXIF/metadados**. Não equivale a uma inspeção completa dos pixels; imagens exóticas ou corrompidas além dos cabeçalhos ainda podem falhar na exibição. Arquivos originais e suas dimensões/metadados são preservados. A otimização e normalização poderão ser tratadas depois conforme necessidade real e compatibilidade do runtime. As limitações de concorrência/última gravação da etapa 006 permanecem. Sem pagamentos, frete, pedidos persistentes ou gerenciador complexo de mídia.
+A etapa 008 validava apenas assinatura/estrutura. Desde a etapa 012, novos uploads passam também pela remoção de metadados descrita abaixo, sem reencode. Não há decodificação completa, redução automática, thumbnails físicos ou antivírus. Não equivale a uma inspeção completa dos pixels; imagens exóticas ou corrompidas além dos cabeçalhos ainda podem falhar na exibição. Arquivos já cadastrados continuam preservados. Nos novos uploads, pixels comprimidos e dimensões são mantidos; metadados são tratados conforme a etapa 012. A otimização e normalização poderão ser tratadas depois conforme necessidade real e compatibilidade do runtime. As limitações de concorrência/última gravação da etapa 006 permanecem. Sem pagamentos, frete, pedidos persistentes ou gerenciador complexo de mídia.
 
 ## Compra pelo WhatsApp — MAISBELLA-009
 
@@ -746,7 +746,7 @@ Antes de publicar:
 - Definir persistência, permissões, domínio/TLS, proxy confiável, reinício supervisionado e política simples de retenção/cópia externa dos backups. Validar Secure/HTTPS, CSRF e rate limit na topologia real.
 - Confirmar que `.env`, bancos, uploads de runtime e backups não entram no Git; revisar o diff antes de qualquer commit.
 
-Limitações mantidas: uma instância, sessões/rate limiting em memória (reinício encerra sessões e zera contadores), sem MFA ou recuperação por e-mail; manutenção/backup exigem parada operacional, sem agendamento/cópia externa automática. Uploads continuam sem reencode/remoção de EXIF; revise metadados de fotos reais antes de publicar. Não há deploy ou garantia de disponibilidade sem validar a hospedagem futura. A loja segue sem pagamento online, conta de cliente, reserva de estoque ou pedidos persistentes.
+Limitações mantidas: uma instância, sessões/rate limiting em memória (reinício encerra sessões e zera contadores), sem MFA ou recuperação por e-mail; manutenção/backup exigem parada operacional, sem agendamento/cópia externa automática. Uploads continuam sem reencode; desde a etapa 012, novos arquivos têm saneamento de metadados, preservando orientação mínima e perfis de cor. Fotos anteriores não são reprocessadas. Não há deploy ou garantia de disponibilidade sem validar a hospedagem futura. A loja segue sem pagamento online, conta de cliente, reserva de estoque ou pedidos persistentes.
 
 Validação automatizada da etapa 010: **148 testes aprovados**, sem falhas (136 anteriores e 12 novos). A migration 002 será aplicada automaticamente na próxima inicialização; ela adiciona a tabela de hashes administrativos sem remover dados do catálogo. A conferência visual e a operação das ferramentas pelo responsável técnico ainda devem ser validadas em ambiente isolado antes do deploy.
 
@@ -786,3 +786,57 @@ Fontes: [especificações do ingresso Railway](https://docs.railway.com/networki
 4. Verifique no ambiente real que campos encaminhados enviados manualmente pelo cliente são substituídos pelo ingresso. Não registre cookies, senhas ou tokens em diagnósticos. Confira limites de login e ausência de acesso direto/TCP à porta Node.
 
 Testes novos emulam um ingresso HTTP que termina TLS e substitui headers, usam SQLite em memória e incluem peer não loopback, falsificação em conexão não confiável, cadeias ambíguas, cookies/CSRF/Origin/logout e evasão do rate limit. Não acessam o serviço publicado nem alteram seu banco/credenciais. Execute npm test e git diff --check; a validação do contrato efetivo do ingresso no Railway continua necessária.
+
+## Privacidade e segurança — MAISBELLA-012
+
+### Limpeza no navegador
+
+“Limpar sacola e favoritos” está no rodapé das quatro páginas públicas e também junto à sacola. Exige confirmação em modal, com Cancelar em foco e retorno ao botão de origem. Remove apenas as chaves maisbella:cart:v1 e maisbella:favorites:v1 e atualiza os componentes desta página e das outras abas pelo evento de storage. Outros dados do navegador e cookies administrativos não são apagados. Perfil/navegador/dispositivo separado continua com seu próprio armazenamento; nada é compartilhado pelo servidor. Não há contas de clientes ou sincronização de sacola no backend.
+
+A confirmação remove as escolhas presentes naquele navegador no momento da ação, incluindo mudanças feitas em outra aba. Se o navegador bloquear a remoção, a página limpa sua memória e informa que é necessário limpar os dados do site pelas configurações do navegador; não promete apagar o que não conseguiu acessar. Em dispositivo compartilhado, use a limpeza antes de entregar o aparelho a outra pessoa. Não há limpeza automática da sacola ao abrir o WhatsApp: abrir não comprova envio nem confirmação da compra.
+
+No formulário da sacola, “Limpar meus dados” pede confirmação e remove nome, telefone, cidade, bairro, observação e escolha de recebimento. Mantém sacola e favoritos. Erros anteriores também são limpos; o foco volta ao nome para facilitar um novo atendimento. A página continua limpando o formulário na inicialização e em pagehide, sem introduzir persistência em localStorage/sessionStorage, URL da loja ou SQLite. A ação fica indisponível enquanto a finalização está em andamento, evitando alteração concorrente do formulário. Não há novo temporizador que apague dados durante a compra.
+
+### Limites da integração com WhatsApp
+
+Ao abrir wa.me, o parâmetro text contém os dados pessoais e os itens. A codificação da URL não é criptografia; o transporte usa HTTPS. Os dados chegam ao serviço WhatsApp na abertura do link, antes de a cliente confirmar o envio da conversa. O histórico do navegador, sincronização de histórico, extensões e o próprio serviço podem ter acesso à URL; a retenção efetiva depende desses ambientes. Não é possível eliminar esse parâmetro mantendo a mesma integração de mensagem preenchida por link. Não foi criado intermediário no servidor para receber ou armazenar o pedido.
+
+O aviso do formulário e os textos de privacidade agora distinguem “não gravado no servidor da loja” de dados compartilhados com WhatsApp. Nenhum pedido é enviado automaticamente. Limpar o formulário, a sacola ou os favoritos **não apaga** URLs já abertas, históricos, mensagens, conversas ou backups do WhatsApp. Evite incluir CPF, cartões ou outras informações sensíveis na observação de entrega. Esses dados não são necessários para este fluxo. Google Fonts continua como antes; esta etapa não elimina essa conexão externa.
+
+Pagehide não ocorre em todos os cenários móveis. Deixar o aparelho com a página aberta, restauração de aplicativo, autofill do navegador e imagens do alternador de aplicativos não são garantidamente apagados pelo JavaScript. Use a ação explícita, perfis separados e bloqueio do aparelho. A promessa de privacidade não inclui eliminação forense de memória ou dados guardados por software externo.
+
+### Administração e cache
+
+O HTML administrativo recebe Cache-Control: no-store, inclusive quando acessado por caminho codificado ou com query string. A API administrativa já usava no-store; agora o cabeçalho também cobre erros do parser JSON antes do router. JS/CSS públicos não contêm credenciais ou dados administrativos pessoais. A API continua exigindo sessão e, nas escritas, CSRF e Origin corretos; HTTPS e cookies Secure não foram afrouxados.
+
+Logout invalida a sessão no servidor e expira o cookie: uma cópia desse cookie também deixa de funcionar. Falha de CSRF no logout não encerra uma sessão válida. Não houve alteração da duração de 30 minutos, renovação, temporizadores ou bloqueio por inatividade; operações normais não ganham novos motivos de encerramento. Alterar senha continua sendo uma ação explícita que invalida todas as sessões. No-store reduz persistência por cache, mas não protege uma sessão ativa em computador compartilhado. Dados já renderizados/rascunhos também podem permanecer na memória da aba; não use o painel num perfil disponibilizado às clientes e saia explicitamente antes de compartilhar o dispositivo.
+
+### Metadados de novos uploads
+
+Não foi instalada dependência. Um saneador de contêiner usa Buffer e node:zlib, após a validação existente e antes de gravar o arquivo pendente. O resultado é novamente validado. A entrada ainda precisa respeitar MIME real, JPEG/PNG/WebP, 5 MiB, dimensões/resolução e rejeição de animação; até 20 imagens por produto e toda a autorização do upload permanecem.
+
+- JPEG: remove APPs de EXIF/XMP/IPTC/autor/aparelho/datas/GPS, comentários e miniaturas JFIF. Faz reconstrução mínima do EXIF somente quando a orientação é 2–8; não copia bytes privados do original. Mantém JFIF sem thumbnail, perfis ICC e transformação Adobe para preservar aparência. Percorre também os marcadores após os scans, preservando dados comprimidos, bytes escapados e restart markers.
+- PNG: remove texto, XMP em texto, datas e chunks auxiliares não necessários. EXIF é reconstruído somente com orientação, quando presente. Mantém dados de pixels, paleta, transparência, dimensões e informações de cor. Recalcula CRC ao reconstruir um chunk; chunks críticos desconhecidos são recusados em vez de apagados silenciosamente.
+- WebP: remove EXIF privado, XMP e chunks desconhecidos. Mantém VP8/VP8L, alpha e perfil ICC; conserva apenas EXIF mínimo de orientação quando necessário. Atualiza tamanho RIFF, padding e flags de EXIF/XMP no VP8X.
+
+Não há recompressão ou redimensionamento: os dados comprimidos de pixels são preservados, evitando perda de qualidade por novo encode. A orientação necessária evita girar involuntariamente fotos do celular. EXIF inconsistente, truncado ou ambíguo recebe erro amigável e não gera arquivo pendente. Isso não é decodificação completa de pixels, antivírus ou garantia contra esteganografia. Perfis de cor ICC são preservados e podem conter informações do próprio perfil; não se promete apagar todo byte identificável de qualquer formato. Informações visíveis na fotografia também permanecem. Consulte as especificações [PNG](https://www.w3.org/TR/png/) e [WebP](https://developers.google.com/speed/webp/docs/riff_container).
+
+**Nenhuma foto anterior é alterada, apagada ou reprocessada automaticamente.** Fotos já cadastradas e arquivos pendentes recebidos antes desta versão continuam como estavam. Para reduzir metadados de uma foto antiga, a responsável pode selecionar e enviar um novo arquivo pelo painel e revisar antes de substituir a anterior; não faça isso em lote sem backup/validação. As fotos publicadas continuam públicas por URL; desativar um produto não revoga cópias anteriores ou transforma sua galeria em armazenamento privado.
+
+### Revisão Railway e validação manual
+
+A política TRUST_PROXY=railway da etapa 011 foi preservada: opt-in em produção, runtime Railway, sem TCP Proxy, confiança limitada ao salto adjacente e X-Real-IP para o rate limit (sem confiar na cadeia anterior X-Forwarded-For). Os testes continuam cobrindo protocolo falso, listas ambíguas e IPs forjados pelo cliente. IDs do runtime e headers não autenticam o proxy; a fronteira continua dependendo da rede. Não foi alterada nenhuma variável ou recurso do Railway.
+
+Antes de atualizar produção, confirme que só o ingresso HTTP confiável alcança a porta Node, que serviços privados não confiáveis não conseguem acessá-la e que o ingresso substitui X-Forwarded-Proto e X-Real-IP. Se isso não puder ser garantido, use ingresso restrito/allowlist apropriada antes de ativar o modo. Ausência de TCP Proxy nas variáveis não prova, por si só, isolamento de rede. Não use trust proxy=true nem remova HTTPS/CSRF/Secure para contornar configuração.
+
+Valide no Android, especialmente em 360, 390 e 412 px:
+
+1. Adicione sacola/favoritos em duas abas do mesmo perfil. Cancele a limpeza, confira que nada muda; confirme e confira ambas as abas. Outro perfil/dispositivo deve continuar independente. Confira foco, Escape/Cancelar e espaço para toque.
+2. Preencha os dados pessoais. Cancele e depois confirme “Limpar meus dados”; sacola/favoritos devem permanecer. Prepare WhatsApp e retorne sem enviar: a sacola deve continuar presente. Não envie dados reais durante o teste.
+3. No painel, confira login, edição, sessão e logout. Depois de sair, cookie antigo deve receber 401; atualize outra aba. Não altere a senha real apenas para validar esta etapa.
+4. Faça novos uploads de fotos de teste JPEG/PNG/WebP, incluindo JPEG de celular com rotação e imagens com transparência/perfil de cor. Confira prévia, resultado servido, orientação, cores, nitidez e principal. Fotos antigas devem permanecer iguais. A validação visual/decodificação em navegador real complementa os testes estruturais de bytes.
+5. Confira condições de rede do Railway antes de qualquer deploy, sem expor senhas, cookies, tokens ou dados de clientes em logs. Faça backup antes de atualizar a aplicação.
+
+Execute npm test, verificação de sintaxe de JS/MJS e git diff --check. Testes usam dados sintéticos, SQLite e uploads temporários próprios; não leem o banco de desenvolvimento, não limpam o volume e não enviam mensagem real pelo WhatsApp.
+
+Validação automatizada da etapa 012: **171 testes aprovados**, sem falhas (156 anteriores e 15 novos), além da verificação de sintaxe dos arquivos JS/MJS alterados e git diff --check. A validação manual no Android permanece pendente.

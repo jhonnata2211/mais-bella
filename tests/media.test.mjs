@@ -1,3 +1,4 @@
+import { crc32 } from 'node:zlib';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -176,4 +177,23 @@ test('temporários expirados, repetição de foto e quota de pendentes são recu
   const expired = await f.api('/products', 'POST', product(gallery([image]))); assert.equal(expired.status, 400); assert.match((await expired.json()).error, /expirou/);
   for (let i = 1; i <= 199; i++) fs.writeFileSync(path.join(f.media.pending, i.toString(16).padStart(32, '0') + '.png'), 'fixture');
   const limited = await f.upload(); assert.equal(limited.status, 400); assert.match((await limited.json()).error, /muitas fotos/); assert.equal(pendingFiles(f).length, 200);
+});
+
+test('novos uploads removem texto privado antes de gravar/servir sem reprocessar foto já cadastrada', async t => {
+  const f = await fixture(t); await f.setup();
+  const previous = await f.staged();
+  const saved = await f.api('/products', 'POST', product(gallery([previous]))); assert.equal(saved.status, 201);
+  const p = (await saved.json()).product;
+  const metadata = Buffer.from('Comment\0METADADOS_PRIVADOS_SINTETICOS');
+  const chunk = Buffer.alloc(12 + metadata.length); chunk.writeUInt32BE(metadata.length); chunk.write('tEXt', 4); metadata.copy(chunk, 8); chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
+  const original = pngImage(), withMetadata = Buffer.concat([original.subarray(0, 33), chunk, original.subarray(33)]);
+  // Apenas o diretório temporário deste teste simula uma foto legada já cadastrada.
+  const legacy = path.join(f.media.published, path.basename(previous.src)); fs.writeFileSync(legacy, withMetadata);
+  const response = await f.upload(withMetadata); assert.equal(response.status, 201); const next = (await response.json()).image;
+  assert.deepEqual(fs.readFileSync(path.join(f.media.pending, path.basename(next.src))), original);
+  const edited = await f.api('/products/peca', 'PUT', { ...p, images: gallery([...p.images, next]) }); assert.equal(edited.status, 200);
+  assert.deepEqual(fs.readFileSync(legacy), withMetadata);
+  assert.deepEqual(Buffer.from(await (await fetch(f.base + previous.src)).arrayBuffer()), withMetadata);
+  assert.deepEqual(Buffer.from(await (await fetch(f.base + next.src)).arrayBuffer()), original);
+  assert.equal(f.db.prepare('SELECT stock FROM product_variations WHERE product_id=?').get('peca').stock, 4);
 });

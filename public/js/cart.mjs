@@ -1,3 +1,4 @@
+import { clearStoredKey } from './privacy.mjs';
 import { products } from './data/products.mjs';
 import { effectivePrice } from './catalog.mjs';
 import { findProduct, validateSelection } from './product-model.mjs';
@@ -99,6 +100,10 @@ export function createCartStore(storage) {
   }
   return {
     getItems: snapshot,
+    clear() {
+      items = []; changes = []; persistent = clearStoredKey(storage, CART_KEY);
+      emit(); return persistent;
+    },
     getChanges: () => [...changes],
     acknowledgeChanges(persist = false) { changes = []; if (persist && persistent) persistent = writeCart(storage, items); },
     revalidate() {

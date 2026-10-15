@@ -24,6 +24,8 @@ function createApp({ db, config = require('./config').getConfig(), service = new
       formAction: ["'self'"], upgradeInsecureRequests: config.admin.production ? [] : null
     } }
   }));
+  // Inclui erros do parser JSON, que acontecem antes do router administrativo.
+  app.use('/api/admin', (req,res,next) => { res.set('Cache-Control', 'no-store'); next(); });
   app.use(express.json({ limit: '16kb', strict: true }));
   app.get('/api/storefront-config', (req,res) => res.set('Cache-Control','no-store').json({ developmentFeatures: !config.admin.production }));
   app.use('/api/admin', require('./routes/admin-routes').adminRoutes(db, config.admin, media));
@@ -37,7 +39,9 @@ function createApp({ db, config = require('./config').getConfig(), service = new
     res.sendFile(filename, { root: media.published, dotfiles: 'deny' }, error => { if (error) next(error); });
   });
   // Somente arquivos públicos; bloqueia dotfiles e diretórios internos mesmo em URLs diretas.
-  app.use(express.static(path.join(__dirname, '..', 'public'), { dotfiles: 'deny' }));
+  app.use(express.static(path.join(__dirname, '..', 'public'), { dotfiles: 'deny', setHeaders(res, filename) {
+    if (filename === path.join(__dirname, '..', 'public', 'admin.html')) res.setHeader('Cache-Control', 'no-store');
+  } }));
   app.use((req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
   app.use(errorHandler);
   return app;
