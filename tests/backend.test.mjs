@@ -227,7 +227,7 @@ test('API valida parâmetros, recusa escrita e não serve arquivos internos', as
     assert.equal((await fetch(base + '/api/products' + suffix)).status, 400, suffix);
   }
   assert.equal((await fetch(base + '/api/products', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 404);
-  for (const route of ['/.env', '/.env.example', '/data/maisbella.sqlite', '/src/config.js', '/package.json', '/api/admin', '/api/inexistente']) assert.equal((await fetch(base + route)).status, 404, route);
+  for (const route of ['/.env', '/.env.example', '/data/maisbella.sqlite', '/src/config.js', '/package.json', '/api/inexistente']) assert.equal((await fetch(base + route)).status, 404, route);
 });
 
 test('API trata JSON inválido/body grande e envia headers compatíveis com a loja', async t => {
@@ -257,7 +257,7 @@ test('configuração proíbe banco dentro de public e respeita o modo de seed', 
   assert.throws(() => getConfig({ DB_PATH: 'public/catalog.sqlite' }), /public/);
   assert.throws(() => getConfig({ PORT: 'invalid' }), /PORT/);
   assert.throws(() => getConfig({ SEED_DEMO: 'yes' }), /SEED_DEMO/);
-  assert.equal(getConfig({ NODE_ENV: 'production' }).seedDemo, false);
+  assert.throws(() => getConfig({ NODE_ENV: 'production' }), /ADMIN/);
   assert.equal(getConfig({ NODE_ENV: 'development' }).seedDemo, true);
   assert.equal(getConfig({ SEED_DEMO: 'false' }).seedDemo, false);
 });

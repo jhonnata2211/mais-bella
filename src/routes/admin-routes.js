@@ -1,0 +1,51 @@
+const { Router } = require('express');
+const { AdminRepository } = require('../repositories/admin-repository');
+const { AdminService } = require('../services/admin-service');
+const { AdminAuth } = require('../services/admin-auth');
+function adminRoutes(db, config) {
+  const router = Router();
+  const auth = new AdminAuth(config);
+  const repository = new AdminRepository(db);
+  const service = new AdminService(repository);
+  const cookieName = config.production ? '__Host-mb_admin' : 'mb_admin';
+  const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: config.production, path: '/' };
+  router.use((req,res,next) => {
+    res.set('Cache-Control','no-store');
+    if (!config.enabled) return res.status(503).json({ error: 'Administração não configurada' });
+    if (config.production && !req.secure) return res.status(403).json({ error: 'HTTPS obrigatório' });
+    // Origin obrigatório em todas as escritas, inclusive login (login CSRF).
+    if (!['GET','HEAD','OPTIONS'].includes(req.method) && (req.get('origin') !== config.origin || !req.is('application/json'))) return res.status(403).json({ error: 'Origem ou formato não autorizado' });
+    const cookie = (req.headers.cookie || '').split(';').map(c => c.trim()).find(c => c.startsWith(cookieName + '='));
+    req.adminToken = cookie?.slice(cookieName.length + 1);
+    req.adminSession = auth.session(req.adminToken);
+    next();
+  });
+  router.post('/login', async (req,res) => {
+    const { username, password } = req.body || {};
+    if (typeof username !== 'string' || username.length > 120 || typeof password !== 'string' || password.length > 256) return res.status(400).json({ error: 'Credenciais inválidas' });
+    const result = await auth.login(req.ip, username, password);
+    if (result === 'limited') return res.status(429).set('Retry-After','900').json({ error: 'Muitas tentativas. Aguarde 15 minutos.' });
+    if (!result) return res.status(401).json({ error: 'Credenciais inválidas' });
+    auth.invalidate(req.adminToken);
+    const session = auth.create();
+    res.cookie(cookieName,session.token,{ ...cookieOptions, maxAge: config.sessionMs });
+    res.json({ authenticated: true, csrfToken: session.csrf, expiresAt: session.expires });
+  });
+  router.use((req,res,next) => {
+    if (!req.adminSession) return res.status(401).json({ error: 'Sessão ausente ou expirada' });
+    if (!['GET','HEAD','OPTIONS'].includes(req.method) && req.get('x-csrf-token') !== req.adminSession.csrf) return res.status(403).json({ error: 'Token CSRF inválido' });
+    next();
+  });
+  router.get('/session', (req,res) => res.json({ authenticated: true, csrfToken: req.adminSession.csrf, expiresAt: req.adminSession.expires }));
+  router.post('/logout', (req,res) => { auth.invalidate(req.adminToken); res.clearCookie(cookieName,cookieOptions); res.json({ success: true }); });
+  router.get('/products', (req,res) => res.json({ products: repository.products() }));
+  router.get('/products/:id', (req,res) => res.json({ product: service.product(req.params.id) }));
+  router.post('/products', (req,res) => res.status(201).json({ product: service.saveProduct(req.body) }));
+  router.put('/products/:id', (req,res) => res.json({ product: service.saveProduct(req.body,req.params.id) }));
+  router.get('/categories', (req,res) => res.json({ categories: repository.categories() }));
+  router.post('/categories', (req,res) => res.status(201).json({ category: service.saveCategory(req.body) }));
+  router.put('/categories/:id', (req,res) => res.json({ category: service.saveCategory(req.body,req.params.id) }));
+  router.use((req,res) => res.status(404).json({ error: 'Rota não encontrada' }));
+  return router;
+}
+module.exports = { adminRoutes };

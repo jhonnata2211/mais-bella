@@ -1,0 +1,18 @@
+.admin-body { background: #fff9f6; color: #382b2b; }
+.admin-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; padding:1rem; border-bottom:1px solid #d8b7b0; }
+.admin-main { max-width:60rem; margin:auto; padding:1rem; }
+.admin-main section { margin:1.5rem 0; padding:1rem; background:#fff; border:1px solid #e7d4cd; border-radius:12px; }
+.admin-main form, .admin-main label { display:grid; gap:.4rem; }
+.admin-main form { gap:1rem; }
+.admin-main input, .admin-main textarea, .admin-main select, .admin-body button { font:inherit; min-height:44px; padding:.6rem; max-width:100%; border:1px solid #ac7d7a; border-radius:6px; }
+.admin-main input[type=checkbox] { min-height:24px; width:24px; }
+.admin-body button { background:#855354; color:white; cursor:pointer; }
+.admin-body button:disabled { opacity:.6; cursor:wait; }
+.admin-list { list-style:none; padding:0; }
+.admin-list li { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.5rem; padding:.7rem 0; border-bottom:1px solid #e7d4cd; overflow-wrap:anywhere; }
+.admin-variation { display:grid; gap:.5rem; padding:.8rem 0; border-bottom:1px solid #e7d4cd; }
+.admin-main fieldset { min-width:0; padding:.7rem; }
+.admin-main [hidden], .admin-header [hidden] { display:none; }
+#feedback { padding:.5rem; overflow-wrap:anywhere; }
+.admin-body :focus-visible { outline:3px solid #855354; outline-offset:3px; }
+@media(min-width:600px) { .admin-variation { grid-template-columns:2fr 1fr 1fr; align-items:end; } }

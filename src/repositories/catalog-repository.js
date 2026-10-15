@@ -14,6 +14,9 @@ class CatalogRepository {
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(product.id, product.slug, product.name, product.shortDescription, product.description,
       product.categoryId, product.priceCents, product.promotionalPriceCents, Number(product.active), Number(product.featured), Number(product.isNew),
       Number(product.bestSeller), Number(product.demo), product.createdAt, new Date().toISOString());
+    this.insertChildren(product);
+  }
+  insertChildren(product) {
     const imageInsert = this.db.prepare('INSERT INTO product_images (id,product_id,reference,alt,sort_order,is_primary,kind,tone,shape) VALUES (?,?,?,?,?,?,?,?,?)');
     for (const image of product.images) imageInsert.run(image.id, product.id, image.type === 'image' ? image.src : `illustration:${image.tone}:${image.shape}`,
       image.alt, image.order, Number(image.primary), image.type, image.tone || null, image.shape || null);
@@ -39,19 +42,19 @@ class CatalogRepository {
     return rows.map(row => this.toPublicProduct(row));
   }
   findProduct(slug) { return this.listProducts({ slug })[0] || null; }
-  toPublicProduct(row) {
+  toPublicProduct(row, admin = false) {
     const images = this.db.prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order, id').all(row.id).map(image => ({
       id: image.id, productId: row.id, reference: image.reference, alt: image.alt, order: image.sort_order, primary: Boolean(image.is_primary), type: image.kind,
       ...(image.kind === 'image' ? { src: image.reference } : { tone: image.tone, shape: image.shape })
     }));
-    const variations = this.db.prepare('SELECT * FROM product_variations WHERE product_id = ? AND active = 1 ORDER BY sort_order, id').all(row.id)
-      .map(variation => ({ id: variation.id, productId: row.id, color: variation.color, size: variation.size, stock: variation.stock, active: true }));
+    const variations = this.db.prepare('SELECT * FROM product_variations WHERE product_id = ? AND (active = 1 OR ? = 1) ORDER BY sort_order, id').all(row.id, Number(admin))
+      .map(variation => ({ id: variation.id, productId: row.id, color: variation.color, size: variation.size, stock: variation.stock, active: Boolean(variation.active), order: variation.sort_order }));
     return {
       id: row.id, slug: row.slug, name: row.name, shortDescription: row.short_description, description: row.description,
       categoryId: row.category_id, categorySlug: row.category_slug, category: row.category,
       price: row.price_cents / 100, priceCents: row.price_cents,
       ...(row.promotional_price_cents === null ? {} : { promotionalPrice: row.promotional_price_cents / 100, promotionalPriceCents: row.promotional_price_cents }),
-      active: true, featured: Boolean(row.featured), isNew: Boolean(row.is_new), bestSeller: Boolean(row.best_seller), demo: Boolean(row.demo),
+      active: Boolean(row.active), featured: Boolean(row.featured), isNew: Boolean(row.is_new), bestSeller: Boolean(row.best_seller), demo: Boolean(row.demo),
       createdAt: row.created_at, updatedAt: row.updated_at, images, variations,
       colors: [...new Set(variations.map(variation => variation.color))], sizes: [...new Set(variations.map(variation => variation.size))]
     };

@@ -1,6 +1,7 @@
 const { ValidationError } = require('../services/validation');
 function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
+  if (error.status === 404) return res.status(404).json({ error: 'Registro não encontrado' });
   if (error instanceof ValidationError) return res.status(400).json({ error: error.message });
   if (error.type === 'entity.too.large') return res.status(413).json({ error: 'Corpo da requisição excede o limite' });
   if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON inválido' });

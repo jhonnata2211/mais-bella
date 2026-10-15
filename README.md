@@ -12,6 +12,8 @@ Loja de moda feminina com identidade de boutique: blush, rosa queimado, nude e o
 
 **MAISBELLA-005 — backend e SQLite:** banco como fonte operacional do catálogo, migrations, seed idempotente e API pública de leitura. Home, catálogo, produto e sacola carregam os dados pela API antes das interações. Sem mudança de layout, autenticação ou rotas administrativas.
 
+**MAISBELLA-006 — implementação para revisão:** autenticação administrativa, sessões, operações protegidas e painel responsivo em `/admin.html`. Consulte a configuração e as limitações abaixo. Nenhum administrador é criado automaticamente.
+
 ## Instalar e executar
 
 Pré-requisito: **Node.js 24.15 ou superior com `node:sqlite` disponível** e npm. Validado neste Android/Termux com Node.js 26.3.1 e SQLite 3.53.2. Use um navegador moderno com suporte a módulos JavaScript e ao elemento nativo `<dialog>`.
@@ -301,7 +303,7 @@ Se a API falhar ou responder com contrato inválido, a página exibe orientaçã
 
 Valida-se inicialização/reabertura, migrations, seed repetido, preservação de edições, slugs/variações únicos, FKs, centavos, imagens, ativos, estoque, filtros, JSON, segurança, erros e a compatibilidade da sacola/favoritos/WhatsApp com dados vindos do banco. Nenhum teste envia mensagens ao WhatsApp.
 
-O futuro painel autenticado chamará os serviços/validadores existentes e usará as tabelas de catálogo para edição, imagens e variações. Ainda precisam ser implementados autenticação/autorização apropriadas, rotas privadas, atualização com timestamps, upload validado e UI administrativa. Não há login improvisado, senha no frontend ou endpoint administrativo público nesta etapa. Estoque no pedido continua apenas uma validação local demonstrativa, sem reserva ou baixa transacional de vendas.
+A seção MAISBELLA-006 abaixo documenta o painel que agora utiliza os validadores e tabelas existentes. Upload e baixa transacional de vendas continuam fora do escopo.
 
 ## Limitações desta etapa
 
@@ -311,6 +313,93 @@ Favoritos guardam apenas IDs na chave `maisbella:favorites:v1` do `localStorage`
 
 A página individual usa `/produto.html?slug=slug` e também aceita `?id=id`. O destino fica centralizado em `productURL`. URLs antigas com `/catalogo.html?produto=slug` redirecionam para a nova página pelo JavaScript. Produto inexistente ou inativo mostra “Produto não encontrado” e retorno ao catálogo.
 
-Há SQLite para catálogo, mas não há autenticação, painel administrativo, persistência de pedidos, upload, pagamento, checkout, cálculo de frete ou coleta de e-mails. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
+Há SQLite, autenticação e painel administrativo. Ainda não há persistência de pedidos, upload, pagamento, checkout, cálculo de frete ou coleta de e-mails. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
 
-Nenhuma credencial é necessária. `.env` e `node_modules` estão ignorados pelo Git.
+A vitrine não exige credenciais; o painel exige configuração explícita. `.env` e `node_modules` estão ignorados pelo Git.
+
+## Autenticação e painel — MAISBELLA-006
+
+Acesse **http://localhost:3000/admin.html**. O painel tem login, consulta de todos os produtos (inclusive inativos e demonstrativos), criação/edição, promoção, status, categorias e variações com cor, tamanho, estoque e status próprios. A vitrine pública e o fluxo de favoritos/sacola/WhatsApp permanecem com o mesmo contrato. As escritas na API pública continuam indisponíveis; preços e estoques vêm do SQLite, nunca do corpo enviado pela sacola.
+
+### Configuração local e primeiro administrador
+
+No Termux, com Node.js 24.15 ou superior:
+
+```sh
+npm install
+# Somente se ainda não houver .env:
+cp .env.example .env
+chmod 600 .env
+npm run admin:configure
+npm start
+```
+
+O comando interativo solicita usuário e senha duas vezes, sem ecoar a senha, sem argumentos sensíveis no histórico e sem imprimir hash/segredo. Use uma senha exclusiva de **15 a 256 caracteres**, preferencialmente gerada por um gerenciador. O comando grava somente usuário, hash scrypt com sal aleatório e segredo criptográfico no `.env` privado. Não existe senha padrão, rota de cadastro ou credencial no frontend. Não execute o comando por pipe. Ele recusa arquivo que já contenha credenciais; não gera nem altera produtos. Sem credenciais, a vitrine funciona e a API administrativa responde 503. Configuração parcial/inválida impede iniciar o servidor.
+
+A senha usa `scrypt` nativo do Node, N=32768, r=8, p=3, sal aleatório de 16 bytes, saída de 64 bytes e comparação de tempo constante. O banco não recebe credenciais. Não copie o `.env` para Git, mensagens, capturas ou diretórios públicos. Trate o hash como credencial sensível. O `.env.example` contém somente nomes de variáveis e configuração local sem credenciais.
+
+| Variável | Configuração |
+| --- | --- |
+| `ADMIN_USER` | Identidade do único administrador autorizado nesta versão |
+| `ADMIN_PASSWORD_HASH` | Hash no formato fixo gerado pelo comando; no `.env`, entre aspas simples |
+| `SESSION_SECRET` | Pelo menos 32 bytes aleatórios em hexadecimal; o comando gera 32 bytes |
+| `APP_ORIGIN` | Origem exata, incluindo protocolo/porta e sem barra final; local: `http://localhost:3000` |
+| `NODE_ENV` | Use `production` no deploy para exigir as proteções de produção |
+| `SEED_DEMO` | `false` em produção; novos bancos operacionais devem iniciar vazios |
+| `TRUST_PROXY` | Ausente por padrão. Aceita somente `loopback`, se houver proxy HTTPS confiável na mesma máquina |
+| `PORT`, `DB_PATH` | Mantêm as regras da etapa anterior; nunca ponha o banco em `public` |
+
+Para acessar pelo IP na rede local, ajuste `APP_ORIGIN` para o endereço exato usado no navegador e reinicie. Não transmita credenciais por HTTP em redes não confiáveis. Para mudar a porta, ajuste também `APP_ORIGIN`. Não configure `TRUST_PROXY` sem o proxy descrito acima.
+
+Para trocar credenciais: pare a aplicação, remova **somente** as três linhas de credenciais do `.env` privado, execute novamente `npm run admin:configure` e reinicie. Nunca coloque hash/senha em comandos do shell. Reiniciar invalida todas as sessões. Não há cadastro de múltiplos usuários, recuperação de senha ou níveis adicionais de acesso; a identidade configurada tem autorização para todo o catálogo.
+
+### Sessões, CSRF e tentativas de login
+
+Sessões opacas e tokens CSRF usam 32 bytes aleatórios independentes. O servidor mantém apenas a chave HMAC do identificador em memória; a sessão vence em **30 minutos absolutos**, sem renovação por atividade. Todo login válido gera um identificador novo e invalida o cookie anterior. Logout remove a sessão no servidor e expira o cookie. Cookies são `HttpOnly`, `SameSite=Strict`, `Path=/`, sem `Domain` e com expiração; em produção recebem `Secure` e nome `__Host-mb_admin`.
+
+Todas as escritas administrativas exigem JSON e `Origin` exatamente igual a `APP_ORIGIN`. Login verifica a origem; as demais escritas exigem também sessão e header `X-CSRF-Token`, obtido no login ou na consulta de sessão. O frontend mantém o token somente em memória. Sessão ausente/expirada/encerrada retorna 401 e o painel volta ao login. Token/origem inválidos retornam 403. A API administrativa usa `Cache-Control: no-store`.
+
+Há limite de **5 verificações de login por IP em janela de 15 minutos**, incluindo logins válidos, e de duas verificações de senha simultâneas por processo. Ao exceder retorna 429 com `Retry-After: 900`; o bloqueio pode durar até o fim da janela. Usuário e senha incorretos recebem a mesma resposta genérica. `X-Forwarded-For` não é confiado por padrão. Mapas têm limpeza por expiração e limites de tamanho.
+
+**Esta versão exige um único processo servidor.** Sessões e limites ficam em memória: reinícios encerram sessões e reiniciam o controle de tentativas. Não use cluster/réplicas sem substituir esses armazenamentos por um serviço compartilhado e adicionar proteção de tentativas no proxy. Um invasor distribuído pode contornar limite por IP; aplique também limites no ingresso HTTPS. Não há MFA, auditoria persistente de alterações ou recuperação de conta nesta versão.
+
+### Rotas administrativas
+
+Todas estão sob `/api/admin`. Exceção à autenticação: somente `POST /login`. Não há registro público de administrador.
+
+| Método e rota | Uso |
+| --- | --- |
+| `POST /login` | JSON `{ username, password }`; responde `{ authenticated, csrfToken, expiresAt }` e cookie |
+| `GET /session` | Consulta sessão e token CSRF; não estende o prazo |
+| `POST /logout` | Invalida sessão e remove cookie; enviar `{}` |
+| `GET /products` | `{ products }`, inclui inativos e todas as variações |
+| `GET /products/:id` | `{ product }` por ID estável, inclusive inativo |
+| `POST /products` | Criação validada; responde 201 `{ product }` |
+| `PUT /products/:id` | Substituição dos campos editáveis e das listas de imagens/variações; ativa/desativa com `active` |
+| `GET /categories` | `{ categories }`, inclui inativas |
+| `POST /categories` | Criação; responde 201 `{ category }` |
+| `PUT /categories/:id` | Edita nome, slug, ordem e status; ID imutável |
+
+Produtos usam `id`, `slug`, `name`, `shortDescription`, `description`, `categoryId`, `priceCents`, `promotionalPriceCents` (inteiro ou null), `active`, `featured`, `isNew`, `bestSeller`, `images` e `variations`. Categorias usam `id`, `slug`, `name`, `sortOrder`, `active`. O painel gera IDs aleatórios; IDs não mudam na edição. Variações usam `id` opcional, `color`, `size`, `stock` inteiro entre 0 e 1.000.000, `active` e `order` opcionais. Cores/tamanhos são gerenciados nessas variações, sem novas tabelas desnecessárias.
+
+Valores monetários recebidos pelo servidor são **centavos inteiros**, até 2.147.483.647; a promoção deve ser inferior ao preço base. A UI converte reais com até duas casas decimais para centavos. As validações já existentes de imagens, unicidade e integridade foram preservadas. Alterações de produto/imagens/variações e categorias usam transações. Conflitos retornam 400 sem detalhes SQL, e erros inesperados retornam 500 genérico. `createdAt` e a marca `demo` são preservados na edição; produtos novos são operacionais (`demo=false`). Não transforme os produtos demonstrativos em reais: crie cadastros com informações verificadas.
+
+A edição de produto substitui as listas de filhos atomicamente e mantém seu ID e data de criação; a interface preserva a galeria existente. Não há upload: para novos produtos, publique previamente uma imagem autorizada em `public/assets` e informe seu caminho local, por exemplo `/assets/foto.webp`. O validador restringe referências locais. Não há exclusão física; desative produtos/categorias ou remova variações na edição. Categoria inativa oculta seus produtos da API pública. Edições simultâneas usam a última gravação; não há controle de versões nesta etapa.
+
+### Produção e validação
+
+Produção recusa ausência de credenciais/segredo válidos, origem sem HTTPS e `SEED_DEMO=true`. As rotas administrativas recusam transporte HTTP. Helmet ativa HSTS e upgrade de HTTPS em produção. Como o servidor Node atual serve HTTP, termine TLS num proxy **confiável em loopback**, configure `TRUST_PROXY=loopback`, repasse os headers corretos e bloqueie acesso externo direto à porta do Node. Não confie em headers de proxies arbitrários. Mantenha HTTPS de ponta a ponta até o navegador.
+
+```sh
+npm test
+node --check server.js
+find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+git diff --check
+git status --short
+```
+
+São **84 testes**, incluindo os 70 anteriores. Os novos usam hashes gerados durante o teste, bancos temporários próprios e HTTP real em portas efêmeras, sem ler `.env` ou modificar o banco da loja. Cobrem login válido/inválido, fixação, expiração/logout, rotas protegidas, tentativas excessivas e expiração do limite, CSRF/origem, categorias, centavos/promoção/estoque inválidos, persistência após reabertura, rollback de edição, inativos, proteção da API pública, configuração de produção/cookies/HSTS e erros sem detalhes sensíveis.
+
+Antes de liberar a loja, faça a validação visual e de acessibilidade em navegador real: `/admin.html` em 320, 375, 768 e 1440 px; teclado/labels/foco; login inválido/válido; criação de categoria; cadastro com fotografia real; edição de cor/tamanho/estoque; desativação; atualização da vitrine; logout e expiração em outra aba. Os testes automatizados não substituem essa inspeção visual. O ambiente desta execução não disponibiliza navegador automatizado.
+
+Prepare banco vazio com `SEED_DEMO=false` para dados reais, confira cada informação comercial e fotografia, remova referências demonstrativas da apresentação comercial, configure HTTPS/proxy, proteja `.env` e SQLite com permissões do sistema e valide backup/restauração com a aplicação parada. Adote monitoramento e proteção de login no proxy antes de expor o painel à internet. Sacola/WhatsApp continuam sem reserva, baixa ou confirmação de pedido no servidor; o atendimento deve conferir disponibilidade e valores. Nenhum teste envia mensagem ao WhatsApp.

@@ -9,7 +9,7 @@ async function startServer() {
   const db = openDatabase(config.databasePath);
   try {
     if (config.seedDemo) await seedDemo(db);
-    const app = createApp({ db });
+    const app = createApp({ db, config });
     const server = app.listen(config.port);
     await new Promise((resolve, reject) => {
       server.once('error', reject);
