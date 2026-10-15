@@ -1,4 +1,5 @@
-import { findProduct, getVariation, validateSelection } from './product-model.mjs';
+import { isDemoProduct } from './commerce.mjs';
+import { findProduct, getVariation, validateSelection, simplifySelection } from './product-model.mjs';
 import { effectivePrice } from './catalog.mjs';
 import { escapeHTML, imageTone, money, productVisual } from './products.mjs';
 import { initStorefront } from './storefront.mjs';
@@ -20,7 +21,9 @@ export function initProductPage() {
     document.title = 'Produto não encontrado — Mais Bella';
     return;
   }
-  let selection = { color: '', size: '' };
+  let selection = simplifySelection(product);
+  const demo = isDemoProduct(product);
+  document.querySelector('#product-demo-note').hidden = !demo;
   let imageIndex = 0;
   const price = effectivePrice(product);
   const discounted = price < product.price;
@@ -36,9 +39,9 @@ export function initProductPage() {
   document.querySelector('#product-old-price').hidden = !discounted;
   document.querySelector('#product-old-price').textContent = money(product.price);
   document.querySelector('#product-discount').hidden = !discounted;
-  document.querySelector('#product-discount').textContent = `${Math.round((1 - price / product.price) * 100)}% de desconto · demo`;
+  document.querySelector('#product-discount').textContent = `${Math.round((1 - price / product.price) * 100)}% de desconto${demo ? ' · demo' : ''}`;
   document.querySelector('#product-new').hidden = !product.isNew;
-  document.querySelector('#product-installment').textContent = `3x de ${money(price / 3)} sem juros · condição fictícia`;
+  document.querySelector('#product-installment').textContent = demo ? `3x de ${money(price / 3)} sem juros · condição fictícia` : 'Pagamento combinado pelo WhatsApp.';
   document.querySelector('#product-favorite').dataset.favorite = product.id;
   store.syncFavorites();
   const contactFeedback = document.querySelector('#product-contact-status');
@@ -48,7 +51,7 @@ export function initProductPage() {
     store.notify(message);
   });
 
-  const images = product.images.length ? product.images : [{ type: 'illustration', alt: `Ilustração demonstrativa: ${product.name}` }];
+  const images = product.images.length ? product.images : [{ type: 'illustration', alt: `Ilustração: ${product.name}` }];
   document.querySelector('#gallery-thumbnails').innerHTML = images.map((image, index) => `<button type="button" class="gallery-thumbnail tone-${imageTone(image)}" data-image-index="${index}" aria-label="Mostrar imagem ${index + 1}: ${escapeHTML(image.alt || product.name)}" aria-pressed="false">${productVisual(image, product.name)}</button>`).join('');
   document.querySelector('#gallery-thumbnails').hidden = images.length < 2;
   document.querySelector('#gallery-controls').hidden = images.length < 2;
@@ -57,6 +60,9 @@ export function initProductPage() {
     const main = document.querySelector('#gallery-main');
     main.className = `gallery-main tone-${imageTone(images[imageIndex])}`;
     main.innerHTML = productVisual(images[imageIndex], product.name, true);
+    const note = document.querySelector('#product-photo-note');
+    note.hidden = images[imageIndex].type === 'image';
+    note.textContent = demo ? 'Ilustração de produto demonstrativo.' : 'Ilustração provisória. Confira os detalhes da peça pelo WhatsApp.';
     document.querySelectorAll('[data-image-index]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.imageIndex) === imageIndex)));
     document.querySelector('#gallery-count').textContent = `Imagem ${imageIndex + 1} de ${images.length}`;
   }
@@ -71,8 +77,8 @@ export function initProductPage() {
   document.querySelector('#color-fieldset').hidden = product.colors.length === 0;
   document.querySelector('#size-fieldset').hidden = product.sizes.length === 0;
   document.querySelector('#product-colors').innerHTML = product.colors.map(color => {
-    const available = product.variations.some(variation => variation.color === color && variation.stock > 0);
-    return `<label class="product-option color-option${available ? '' : ' unavailable'}"><input type="radio" name="color" value="${escapeHTML(color)}" ${available ? '' : 'disabled'}><span class="option-face"><span class="color-swatch" style="background:${swatches[color] || '#b5aaa1'}" aria-hidden="true"></span>${escapeHTML(color)}${available ? '' : ' · esgotada'}</span></label>`;
+    const available = product.variations.some(variation => variation.active !== false && variation.color === color && variation.stock > 0);
+    return `<label class="product-option color-option${available ? '' : ' unavailable'}"><input type="radio" name="color" value="${escapeHTML(color)}" ${available ? '' : 'disabled'} ${selection.color === color && available ? 'checked' : ''}><span class="option-face"><span class="color-swatch" style="background:${swatches[color] || '#b5aaa1'}" aria-hidden="true"></span>${escapeHTML(color)}${available ? '' : ' · esgotada'}</span></label>`;
   }).join('');
   function renderSizes() {
     document.querySelector('#product-sizes').innerHTML = product.sizes.map(size => {
@@ -98,9 +104,10 @@ export function initProductPage() {
     document.querySelector('#quantity-decrease').disabled = remaining === 0 || Number(quantity.value) <= 1;
     document.querySelector('#quantity-increase').disabled = remaining === 0 || Number(quantity.value) >= remaining;
     document.querySelector('#product-add').disabled = !validation.ok || !validQuantity;
-    document.querySelector('#stock-status').textContent = !validation.ok ? validation.message : remaining === 0
-      ? 'O limite desta variação já está na sua sacola local.'
-      : `Disponível na demonstração: ${validation.stock} unidade(s). Você pode adicionar mais ${remaining}. Não representa estoque real.`;
+    const soldOut = product.variations.length > 0 && !product.variations.some(v => v.active !== false && v.stock > 0);
+    document.querySelector('#stock-status').textContent = soldOut ? 'Essa opção está esgotada.' : !validation.ok ? validation.message : remaining === 0
+      ? 'Todas as unidades disponíveis desta opção já estão na sua sacola.'
+      : `${demo ? 'Estoque demonstrativo' : 'Disponível'}: ${validation.stock} unidade(s). Você pode adicionar mais ${remaining}.`;
     document.querySelector('#selected-color').textContent = selection.color || 'Selecione uma opção';
     document.querySelector('#selected-size').textContent = selection.size || (selection.color ? 'Selecione uma opção' : 'Escolha a cor primeiro');
   }
@@ -109,6 +116,7 @@ export function initProductPage() {
       selection.color = event.target.value;
       const variation = getVariation(product, selection);
       if (!variation || variation.stock === 0) selection.size = '';
+      selection = simplifySelection(product, selection);
       renderSizes();
     } else if (event.target.name === 'size') selection.size = event.target.value;
     else return;
@@ -140,9 +148,14 @@ export function initProductPage() {
     }
     updateAvailability();
   });
-  document.querySelector('#open-added-cart').addEventListener('click', event => store.cartPanel.open(event.currentTarget));
   const guide = setupDialog(document.querySelector('#size-guide-dialog'));
-  document.querySelector('#size-guide-button').addEventListener('click', event => guide.open(event.currentTarget));
+  const measures = document.querySelector('#size-guide-button');
+  if (demo) measures.addEventListener('click', event => guide.open(event.currentTarget));
+  else {
+    measures.textContent = 'Consultar medidas pelo WhatsApp ↗';
+    for (const name of ['aria-haspopup', 'aria-controls', 'aria-expanded']) measures.removeAttribute(name);
+    bindWhatsAppButton(measures, () => 'Olá! Gostaria de conferir as medidas de ' + product.name + '.', store.notify);
+  }
   renderSizes();
   updateAvailability();
 }

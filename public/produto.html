@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6efeb">
-  <meta name="description" content="Mais Bella — coleção demonstrativa de moda feminina. Sem venda ou checkout nesta etapa.">
-  <title>Produto demonstrativo — Mais Bella</title>
+  <meta name="description" content="Mais Bella — moda feminina. Escolha suas peças e finalize pelo WhatsApp.">
+  <title>Produto — Mais Bella</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/app.js" defer></script>
 </head>
 <body data-page="product">
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-  <div class="announcement">Frete para todo o Brasil <span aria-hidden="true">♡</span></div>
+  <div class="announcement">Atendimento pelo WhatsApp <span aria-hidden="true">♡</span></div>
   <header class="site-header">
     <div class="header-main container">
       <button type="button" class="icon-button menu-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-principal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
@@ -19,9 +19,9 @@
       <span class="header-note">MODA PARA SER VOCÊ</span>
       <div class="header-actions">
         <button type="button" class="icon-button" id="search-toggle" aria-label="Pesquisar produtos" aria-expanded="false" aria-controls="search-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
-        <button type="button" class="icon-button account-button" id="account-button" aria-label="Minha conta, demonstração"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button>
+        <button type="button" class="icon-button account-button" id="account-button" aria-label="Como comprar na Mais Bella"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button>
         <button type="button" class="icon-button" id="favorites-toggle" aria-label="Mostrar favoritos" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21 3 12C-3 5 7-1 12 6c5-7 15-1 9 6Z"/></svg><span class="counter" id="favorite-count" hidden>0</span></button>
-        <button type="button" class="icon-button" id="bag-button" aria-label="Sacola demonstrativa, 0 itens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l2 14H3ZM8 8V6a4 4 0 0 1 8 0v2"/></svg><span class="counter" id="bag-count">0</span></button>
+        <button type="button" class="icon-button" id="bag-button" aria-label="Abrir sacola, 0 itens"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l2 14H3ZM8 8V6a4 4 0 0 1 8 0v2"/></svg><span class="counter" id="bag-count">0</span></button>
       </div>
     </div>
     <nav class="navigation" id="menu-principal" aria-label="Menu principal"><div class="container nav-links"><a href="/index.html#inicio">Início</a><a href="/catalogo.html?novidades=1#catalogo">Novidades</a><a href="/catalogo.html?categoria=Vestidos#catalogo" data-category="Vestidos">Vestidos</a><a href="/catalogo.html?categoria=Conjuntos#catalogo" data-category="Conjuntos">Conjuntos</a><a href="/catalogo.html?categoria=Blusas#catalogo" data-category="Blusas">Blusas</a><a href="/catalogo.html?categoria=Cal%C3%A7as#catalogo" data-category="Calças">Calças</a><a href="/catalogo.html?categoria=Saias%20%26%20Shorts#catalogo" data-category="Saias & Shorts">Saias &amp; Shorts</a><a href="/catalogo.html?promocoes=1#catalogo" data-category="Promoções">Promoções <span class="tiny-heart">♡</span></a></div></nav>
@@ -29,21 +29,21 @@
   </header>
   <main id="conteudo">
     <div class="container product-breadcrumb"><a class="breadcrumb" href="/index.html">Início</a><span aria-hidden="true"> / </span><a class="breadcrumb" href="/catalogo.html">Coleção</a><span aria-hidden="true"> / </span><span class="breadcrumb" id="product-breadcrumb">Produto</span></div>
-    <p id="product-loading" class="container empty-state" role="status">Carregando peça demonstrativa…</p>
-    <section class="container product-not-found" id="product-not-found" hidden aria-labelledby="not-found-title"><p class="eyebrow">MAIS BELLA</p><h1 id="not-found-title">Produto não encontrado</h1><p>Essa peça não está no catálogo demonstrativo. Que tal encontrar outra inspiração?</p><a class="button" href="/catalogo.html">Voltar ao catálogo <span aria-hidden="true">↗</span></a></section>
+    <p id="product-loading" class="container empty-state" role="status">Carregando peça…</p>
+    <section class="container product-not-found" id="product-not-found" hidden aria-labelledby="not-found-title"><p class="eyebrow">MAIS BELLA</p><h1 id="not-found-title">Produto não encontrado</h1><p>Essa peça não está disponível no catálogo. Que tal encontrar outra inspiração?</p><a class="button" href="/catalogo.html">Voltar ao catálogo <span aria-hidden="true">↗</span></a></section>
     <section class="container product-detail" id="product-detail" hidden aria-labelledby="product-title">
       <div class="product-gallery" aria-label="Galeria de imagens do produto">
         <div class="gallery-main" id="gallery-main"></div>
         <div class="gallery-controls" id="gallery-controls" hidden><button type="button" class="icon-button" id="gallery-previous" aria-label="Imagem anterior">←</button><span id="gallery-count" role="status" aria-live="polite"></span><button type="button" class="icon-button" id="gallery-next" aria-label="Próxima imagem">→</button></div>
         <div class="gallery-thumbnails" id="gallery-thumbnails" aria-label="Escolher imagem" hidden></div>
-        <p class="demo-note">Ilustrações locais demonstrativas. Fotografias oficiais serão incluídas futuramente.</p>
+        <p class="demo-note" id="product-photo-note" hidden></p>
       </div>
       <div class="product-details-copy">
         <p class="eyebrow" id="product-category"></p><span class="detail-new" id="product-new" hidden>Novo</span>
         <h1 id="product-title"></h1><p class="product-short-description" id="product-short-description"></p>
-        <div class="detail-prices"><s id="product-old-price" aria-label="Preço original demonstrativo" hidden></s><strong id="product-price" aria-label="Preço atual demonstrativo"></strong><span id="product-discount" hidden></span></div>
+        <div class="detail-prices"><s id="product-old-price" aria-label="Preço original" hidden></s><strong id="product-price" aria-label="Preço atual"></strong><span id="product-discount" hidden></span></div>
         <p class="installment" id="product-installment"></p>
-        <p class="demo-note detail-demo-note">Produto, valores, medidas e estoque fictícios. Nenhuma compra ou reserva é realizada.</p>
+        <p class="demo-note detail-demo-note" id="product-demo-note" hidden>Produto demonstrativo: valores e estoque fictícios, sem disponibilidade real para venda.</p>
         <form id="product-options" aria-label="Escolher variação do produto">
           <fieldset id="color-fieldset"><legend>Cor <span id="selected-color"></span></legend><div class="product-options" id="product-colors"></div></fieldset>
           <fieldset id="size-fieldset"><legend>Tamanho <span id="selected-size"></span></legend><div class="product-options" id="product-sizes"></div></fieldset>
@@ -53,7 +53,7 @@
           <div class="quantity-control"><button type="button" id="quantity-decrease" aria-label="Diminuir quantidade" disabled>−</button><input id="product-quantity" name="quantity" type="number" min="1" max="1" step="1" value="1" inputmode="numeric" aria-describedby="stock-status" disabled><button type="button" id="quantity-increase" aria-label="Aumentar quantidade" disabled>+</button></div>
           <div class="product-purchase-actions"><button type="submit" class="button" id="product-add" disabled>Adicionar à sacola <span aria-hidden="true">+</span></button><button type="button" class="detail-favorite" id="product-favorite" aria-pressed="false" aria-label="Adicionar produto aos favoritos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21 3 12C-3 5 7-1 12 6c5-7 15-1 9 6Z"/></svg></button></div>
         </form>
-        <p id="product-feedback" class="product-feedback" role="status" aria-live="polite"></p><button type="button" class="text-button" id="open-added-cart" aria-haspopup="dialog" aria-controls="cart-dialog" aria-expanded="false" hidden>Ver itens na sacola ↗</button>
+        <p id="product-feedback" class="product-feedback" role="status" aria-live="polite"></p><a class="text-button" id="open-added-cart" href="/sacola.html" hidden>Revisar sacola e finalizar ↗</a>
         <div class="product-contact"><button type="button" class="text-button" id="product-question" aria-describedby="product-contact-status">Tenho uma dúvida <span aria-hidden="true">↗</span></button><p class="demo-note" id="product-contact-status" role="status" aria-live="polite"></p></div>
         <section class="product-description" aria-labelledby="description-title"><h2 id="description-title">Sobre a peça</h2><p id="product-description"></p></section>
       </div>
@@ -63,7 +63,7 @@
   <dialog class="size-guide-dialog" id="size-guide-dialog" aria-labelledby="size-guide-title" aria-describedby="size-guide-note"><div class="dialog-heading"><div><p class="eyebrow">REFERÊNCIA ILUSTRATIVA</p><h2 id="size-guide-title">Guia de medidas</h2></div><button type="button" class="icon-button dialog-close" data-close-dialog aria-label="Fechar guia de medidas">×</button></div>
     <p id="size-guide-note">Tabela demonstrativa, em centímetros. Não representa as medidas oficiais nem garante o caimento das peças Mais Bella.</p>
     <div class="size-table-wrapper"><table class="size-table"><caption>Exemplo de medidas corporais — referência fictícia</caption><thead><tr><th scope="col">Tam.</th><th scope="col">Busto</th><th scope="col">Cintura</th><th scope="col">Quadril</th></tr></thead><tbody><tr><th scope="row">PP</th><td>80–84</td><td>60–64</td><td>86–90</td></tr><tr><th scope="row">P</th><td>84–88</td><td>64–68</td><td>90–94</td></tr><tr><th scope="row">M</th><td>88–94</td><td>68–74</td><td>94–100</td></tr><tr><th scope="row">G</th><td>94–100</td><td>74–80</td><td>100–106</td></tr><tr><th scope="row">GG</th><td>100–106</td><td>80–86</td><td>106–112</td></tr></tbody></table></div><p class="demo-note">As medidas oficiais por produto substituirão esta referência em uma próxima etapa.</p></dialog>
-  <footer class="site-footer"><div class="container footer-grid"><div class="footer-brand"><a class="logo" href="/index.html#inicio"><span class="logo-prefix">use.</span>maisbella<span class="logo-heart">♥</span></a><p>Moda com leveza, personalidade<br>e um toque de carinho.</p><span class="eyebrow">MAIS ESTILO. MAIS VOCÊ.</span></div><div><h3>Institucional</h3><button type="button" data-info="A Mais Bella é uma boutique de moda feminina em construção.">Sobre a Mais Bella</button><a href="/catalogo.html">Nossa coleção</a><a href="/index.html#mais-vendidos">Mais vendidos</a></div><div><h3>Atendimento</h3><button type="button" data-whatsapp-contact aria-label="Falar com a Mais Bella pelo WhatsApp">Fale com a gente</button><button type="button" data-info="Informações sobre envios e prazos serão publicadas na inauguração.">Envios e entregas</button><button type="button" data-info="As condições de trocas e devoluções serão publicadas antes do início das vendas.">Trocas e devoluções</button></div><div><h3>Políticas</h3><button type="button" data-info="Nome, telefone, cidade e bairro são usados apenas para preparar a mensagem ao WhatsApp e não são salvos pela loja. Favoritos e itens da sacola ficam neste navegador. Não usamos cookies de rastreamento. As fontes podem ser carregadas pelo Google Fonts.">Privacidade</button><button type="button" data-info="Esta é uma vitrine demonstrativa. Não há vendas, pagamento ou checkout disponíveis.">Termos de uso</button><h3 class="social-title">Redes sociais</h3><span class="social-placeholder">Instagram · Pinterest<br><small>Em breve</small></span></div></div><div class="container footer-bottom"><p>© <span id="year">2026</span> Mais Bella · Vitrine demonstrativa</p><p>Pagamento previsto: Pix · Cartões · Boleto</p><span>Feito com carinho ♡</span></div></footer>
+  <footer class="site-footer"><div class="container footer-grid"><div class="footer-brand"><a class="logo" href="/index.html#inicio"><span class="logo-prefix">use.</span>maisbella<span class="logo-heart">♥</span></a><p>Moda com leveza, personalidade<br>e um toque de carinho.</p><span class="eyebrow">MAIS ESTILO. MAIS VOCÊ.</span></div><div><h3>Institucional</h3><button type="button" data-info="A Mais Bella é uma boutique de moda feminina. Escolha suas peças e fale com a gente pelo WhatsApp.">Sobre a Mais Bella</button><a href="/catalogo.html">Nossa coleção</a><a href="/index.html#mais-vendidos">Mais vendidos</a></div><div><h3>Atendimento</h3><button type="button" data-whatsapp-contact aria-label="Falar com a Mais Bella pelo WhatsApp">Fale com a gente</button><button type="button" data-info="Entrega, retirada, prazos e valores serão combinados pelo WhatsApp.">Envios e entregas</button><button type="button" data-info="As condições de trocas e devoluções serão publicadas antes do início das vendas.">Trocas e devoluções</button></div><div><h3>Políticas</h3><button type="button" data-info="Nome, telefone, cidade e bairro são usados apenas para preparar a mensagem ao WhatsApp e não são salvos pela loja. Favoritos e itens da sacola ficam neste navegador. Não usamos cookies de rastreamento. As fontes podem ser carregadas pelo Google Fonts.">Privacidade</button><button type="button" data-info="As vendas são combinadas pelo WhatsApp. A sacola não reserva estoque; disponibilidade, entrega e pagamento dependem da confirmação no atendimento.">Termos de uso</button><h3 class="social-title">Redes sociais</h3><span class="social-placeholder">Instagram · Pinterest<br><small>Em breve</small></span></div></div><div class="container footer-bottom"><p>© <span id="year">2026</span> Mais Bella · Moda feminina</p><p>Pagamento combinado pelo WhatsApp</p><span>Feito com carinho ♡</span></div></footer>
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

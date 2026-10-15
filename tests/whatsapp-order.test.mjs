@@ -30,7 +30,7 @@ test('validação de formato comercial só aceita dígitos internacionais e limi
 test('mensagem usa dados numéricos da sacola e contém pedido, cliente e recebimento', () => {
   const items = cart();
   const message = generateOrderMessage(items, details);
-  for (const text of ['Mais Bella ♥️', 'PEDIDO', 'DEMONSTRATIVO', product.name, 'Cor: Rosa queimado', 'Tamanho: M', 'Quantidade: 2', `Valor unitário: ${money(189.90)}`, `Subtotal: ${money(379.80)}`, `TOTAL: ${money(379.80)}`, 'CLIENTE', details.name, details.phone, details.city, details.neighborhood, 'FORMA DE RECEBIMENTO', 'Entrega', details.deliveryNote, 'confirmar disponibilidade, entrega e pagamento']) assert.ok(message.includes(text), text);
+  for (const text of ['Mais Bella ♡', 'PEDIDO', 'DEMONSTRATIVO', product.name, 'Cor: Rosa queimado', 'Tamanho: M', 'Quantidade: 2', `Valor unitário: ${money(189.90)}`, `Subtotal: ${money(379.80)}`, `Total dos produtos: ${money(379.80)}`, 'DADOS', details.name, details.phone, details.city, details.neighborhood, 'RECEBIMENTO', 'Entrega', details.deliveryNote, 'confirmar a disponibilidade, entrega e forma de pagamento']) assert.ok(message.includes(text), text);
   assert.equal(cartCount(items), 2);
   assert.equal(cartSubtotal(items), 379.80);
 });
@@ -43,7 +43,7 @@ test('variações diferentes permanecem em linhas distintas e total/quantidade c
   assert.ok(message.includes('Cor: Rosa queimado'));
   assert.ok(message.includes('Cor: Nude'));
   assert.ok(message.includes('Quantidade total: 3'));
-  assert.ok(message.includes(`TOTAL: ${money(569.70)}`));
+  assert.ok(message.includes(`Total dos produtos: ${money(569.70)}`));
 });
 
 test('retirada não inclui observação de entrega e informa local/horário a combinar', () => {

@@ -1,15 +1,18 @@
+import { products } from './data/products.mjs';
+import { hasDemoItems } from './commerce.mjs';
+import { reviewWhatsAppOrder } from './cart-checkout.mjs';
 import { initStorefront } from './storefront.mjs';
 import { cartContent } from './cart-panel.mjs';
 import { cartCount, cartSubtotal, itemKey } from './cart.mjs';
 import { money } from './products.mjs';
 import { storeConfig } from './config.mjs';
-import { isStoreNumberValid, prepareWhatsAppOrder, validateOrder, WHATSAPP_UNAVAILABLE } from './whatsapp.mjs';
+import { isStoreNumberValid, validateOrder, WHATSAPP_UNAVAILABLE } from './whatsapp.mjs';
 
 export function initCartPage() {
   const form = document.querySelector('#order-form');
   const button = document.querySelector('#finalize-whatsapp');
   const fields = { name: '#order-name', phone: '#order-phone', city: '#order-city', neighborhood: '#order-neighborhood', deliveryNote: '#order-delivery-note' };
-  let showValidation = false;
+  let showValidation = false, checking = false, pageActive = true, submission = 0, firstRender = true;
   const store = initStorefront({ onCartChange: render });
   const details = () => Object.fromEntries(new FormData(form));
   function showErrors(errors, focus = false) {
@@ -36,16 +39,22 @@ export function initCartPage() {
   function render() {
     const items = store.cart.getItems();
     document.querySelector('#full-cart-content').innerHTML = cartContent(items, { editable: true, showTotal: false });
-    document.querySelector('#full-cart-count').textContent = `${cartCount(items)} peça(s) na sacola local`;
+    document.querySelector('#full-cart-count').textContent = `${cartCount(items)} peça(s) na sacola`;
     document.querySelector('#order-item-count').textContent = cartCount(items);
     document.querySelector('#order-subtotal').textContent = money(cartSubtotal(items));
     document.querySelector('#order-section').hidden = items.length === 0;
     const configured = isStoreNumberValid(storeConfig.whatsappNumber);
-    button.disabled = !configured || !items.length;
+    button.disabled = checking || !configured || !items.length;
+    document.querySelector('[data-demo-cart]').hidden = !hasDemoItems(items, products);
     document.querySelector('#whatsapp-config-status').textContent = configured
       ? 'Ao continuar, o WhatsApp será aberto para você revisar e enviar a mensagem.' : WHATSAPP_UNAVAILABLE;
     if (!items.length) { form.reset(); updateReceiving(); showValidation = false; showErrors({}); }
     else if (showValidation) showErrors(validateOrder(items, details()).errors);
+    if (!checking && store.cart.getChanges().length) {
+      cartFeedback('Atualizamos sua sacola. ' + store.cart.getChanges().join(' ') + ' Revise suas escolhas.');
+      store.cart.acknowledgeChanges(firstRender);
+    }
+    firstRender = false;
   }
   function cartFeedback(message) {
     document.querySelector('#cart-feedback').textContent = message;
@@ -70,19 +79,33 @@ export function initCartPage() {
     (controls.find(control => control.dataset.cartDelta === quantityButton.dataset.cartDelta) || controls[0] || document.querySelector('#continue-shopping')).focus({ preventScroll: true });
     cartFeedback(result.message);
   });
-  form.addEventListener('change', updateReceiving);
+  form.addEventListener('change', () => { updateReceiving(); if (showValidation) showErrors(validateOrder(store.cart.getItems(), details()).errors); });
   form.addEventListener('input', () => {
     document.querySelector('#order-status').textContent = '';
     if (showValidation) showErrors(validateOrder(store.cart.getItems(), details()).errors);
   });
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
-    store.cart.refresh();
-    const result = prepareWhatsAppOrder(store.cart.getItems(), details());
+    if (checking) return;
+    const request = ++submission;
+    checking = true; button.disabled = true; form.inert = true;
+    form.setAttribute('aria-busy', 'true');
+    button.textContent = 'Conferindo disponibilidade…';
+    document.querySelector('#order-status').textContent = 'Conferindo preços e estoque antes de continuar…';
+    let result;
+    try { result = await reviewWhatsAppOrder(store.cart, details()); }
+    catch { result = { ok: false, errors: { cart: 'Não foi possível preparar a mensagem agora. Revise a sacola e tente novamente.' } }; }
+    finally {
+      checking = false; form.inert = false; form.setAttribute('aria-busy', 'false');
+      button.textContent = 'Finalizar pelo WhatsApp ↗';
+      button.disabled = !isStoreNumberValid(storeConfig.whatsappNumber) || !store.cart.getItems().length;
+    }
+    if (!pageActive || request !== submission) return;
     showValidation = true;
     if (!result.ok) {
+      document.querySelector('#order-status').textContent = '';
       showErrors(result.errors, store.cart.getItems().length > 0);
-      if (!store.cart.getItems().length) cartFeedback(result.errors.cart);
+      if (result.errors.cart) cartFeedback(result.errors.cart);
       return;
     }
     showErrors({});
@@ -90,7 +113,8 @@ export function initCartPage() {
     window.location.assign(result.url);
   });
   // Dados pessoais só permanecem no formulário durante esta visita, inclusive sem restauração por BFCache.
-  window.addEventListener('pagehide', () => { form.reset(); updateReceiving(); showErrors({}); document.querySelector('#order-status').textContent = ''; showValidation = false; });
+  window.addEventListener('pagehide', () => { pageActive = false; submission++; form.reset(); updateReceiving(); showErrors({}); document.querySelector('#order-status').textContent = ''; showValidation = false; });
+  window.addEventListener('pageshow', () => { pageActive = true; });
   form.reset();
   updateReceiving();
   render();

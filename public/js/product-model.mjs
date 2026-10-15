@@ -9,7 +9,7 @@ export function getVariation(product, { color = '', size = '' } = {}) {
   if (product.colors.length && !product.colors.includes(color)) return null;
   if (product.sizes.length && !product.sizes.includes(size)) return null;
   if (product.variations?.length) {
-    return product.variations.find(variation => variation.color === color && variation.size === size) || null;
+    return product.variations.find(variation => variation.active !== false && variation.color === color && variation.size === size) || null;
   }
   // Produtos sem opções podem futuramente usar um estoque simples; nunca inventar estoque.
   if (!product.colors.length && !product.sizes.length && !color && !size && Number.isInteger(product.stock)) {
@@ -25,9 +25,19 @@ export function validateSelection(product, selection = {}, quantity = 1) {
   const variation = getVariation(product, selection);
   if (!variation) return { ok: false, message: 'Esta combinação de cor e tamanho não existe.' };
   if (!Number.isInteger(variation.stock) || variation.stock <= 0) {
-    return { ok: false, variation, message: 'Variação esgotada no estoque demonstrativo.' };
+    return { ok: false, variation, message: 'Essa opção está esgotada.' };
   }
   if (!Number.isSafeInteger(quantity) || quantity < 1) return { ok: false, variation, message: 'Informe uma quantidade inteira a partir de 1.' };
-  if (quantity > variation.stock) return { ok: false, variation, message: `Limite de ${variation.stock} unidade(s) no estoque demonstrativo.` };
+  if (quantity > variation.stock) return { ok: false, variation, message: `Limite de ${variation.stock} unidade(s) disponíveis para esta opção.` };
   return { ok: true, variation, stock: variation.stock };
+}
+
+// Seleciona automaticamente apenas características com uma única opção em estoque.
+export function simplifySelection(product, previous = {}) {
+  const available = (product.variations || []).filter(v => v.active !== false && v.stock > 0);
+  const colors = product.colors.filter(color => available.some(v => v.color === color));
+  const color = colors.includes(previous.color) ? previous.color : colors.length === 1 ? colors[0] : '';
+  const sizes = product.sizes.filter(size => available.some(v => v.size === size && (!product.colors.length || v.color === color)));
+  const size = sizes.includes(previous.size) ? previous.size : sizes.length === 1 ? sizes[0] : '';
+  return { color, size };
 }

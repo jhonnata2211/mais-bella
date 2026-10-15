@@ -49,9 +49,9 @@ export function initCatalog() {
     const result = validRange ? queryProducts(products, { ...values, favoritesOnly, promotionsOnly, newOnly, favorites: store.favorites }) : [];
     renderProductGrid(document.querySelector('#catalog-products'), result, store.favorites);
     const total = products.filter(product => product.active).length;
-    document.querySelector('#product-count').textContent = `${result.length} de ${total} produtos demonstrativos`;
+    document.querySelector('#product-count').textContent = `${result.length} de ${total} produtos`;
     document.querySelector('#catalog-empty').hidden = result.length > 0 || !validRange;
-    const active = [favoritesOnly && 'Seus favoritos', promotionsOnly && 'Promoções demonstrativas', newOnly && 'Novidades'].filter(Boolean);
+    const active = [favoritesOnly && 'Seus favoritos', promotionsOnly && 'Promoções', newOnly && 'Novidades'].filter(Boolean);
     document.querySelector('#catalog-mode').textContent = active.join(' · ');
     document.querySelector('#catalog-mode').hidden = !active.length;
     const url = new URL(window.location.href);

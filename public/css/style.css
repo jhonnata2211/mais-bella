@@ -235,3 +235,13 @@ body:has(dialog[open]) .whatsapp-floating{visibility:hidden;pointer-events:none}
 @media(min-width:1050px){.order-layout{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:55px}.order-section{padding:28px 24px}.order-fields{grid-template-columns:minmax(0,1fr)}.order-layout .cart-item-info h3{font-size:15px}}
 @media(min-width:1250px){.order-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.order-layout .full-cart .section-heading h2{font-size:29px}.order-section{padding-inline:16px}.whatsapp-order-button{font-size:11px}}
+/* MAISBELLA-009: mantém a composição e reserva espaço às ações no celular. */
+#open-added-cart{display:inline-flex;align-items:center;min-height:44px;overflow-wrap:anywhere}
+.order-section input,.order-section textarea,.quantity-control input{font-size:16px}
+.cart-remove{min-height:44px;max-width:100%}
+.cart-item-info,.order-errors,.stock-status,.product-feedback{overflow-wrap:anywhere}
+@media(max-width:600px){
+  body[data-page="product"].has-whatsapp-contact .product-purchase-actions{margin-right:72px}
+  body[data-page="product"].has-whatsapp-contact #open-added-cart{max-width:calc(100% - 72px)}
+  body[data-page="cart"].has-whatsapp-contact .whatsapp-order-button{width:calc(100% - 64px);font-size:14px;gap:8px}
+}

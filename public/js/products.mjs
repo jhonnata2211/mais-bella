@@ -1,3 +1,4 @@
+import { isDemoProduct } from './commerce.mjs';
 import { effectivePrice } from './catalog.mjs';
 
 export const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -16,12 +17,13 @@ export function productVisual(image, name, eager = false) {
     (image.src.startsWith('/assets/') && !image.src.includes('..') || /^\/uploads\/products\/[a-f0-9]{32}\.(?:jpg|png|webp)$/.test(image.src));
   return safeSource
     ? `<img src="${escapeHTML(image.src)}" alt="${escapeHTML(image.alt || name)}" loading="${eager ? 'eager' : 'lazy'}" width="330" height="420">`
-    : `<div class="garment garment-${shape}" role="img" aria-label="${escapeHTML(image?.alt || `Ilustração demonstrativa: ${name}`)}"></div>`;
+    : `<div class="garment garment-${shape}" role="img" aria-label="${escapeHTML(image?.alt || `Ilustração: ${name}`)}"></div>`;
 }
 
 export function productCard(product, favorites = new Set()) {
   const selected = favorites.has(product.id);
   const price = effectivePrice(product);
+  const demo = isDemoProduct(product);
   const image = product.images[0];
   const name = escapeHTML(product.name);
   const id = escapeHTML(product.id);
@@ -29,13 +31,13 @@ export function productCard(product, favorites = new Set()) {
   return `<article class="product-card" data-product-id="${id}">
     <div class="product-art tone-${imageTone(image)}">
       <a class="product-visual-link" href="${url}" aria-label="Ver detalhes de ${name}">${productVisual(image, product.name)}</a>
-      <div class="product-badges">${product.isNew ? '<span class="product-label">Novo</span>' : ''}${price < product.price ? '<span class="product-label promotion-label">Promoção</span>' : ''}</div>
+      <div class="product-badges">${demo ? '<span class="product-label">Demonstração</span>' : ''}${product.isNew ? '<span class="product-label">Novo</span>' : ''}${price < product.price ? '<span class="product-label promotion-label">Promoção</span>' : ''}</div>
       <button type="button" class="product-favorite" data-favorite="${id}" aria-pressed="${selected}" aria-label="${selected ? 'Remover dos' : 'Adicionar aos'} favoritos: ${name}">${heart}</button>
       <span class="placeholder-label">${image?.type === 'image' ? 'MAIS BELLA' : 'ILUSTRAÇÃO · MAIS BELLA'}</span>
     </div>
     <div class="product-info"><h3><a href="${url}">${name}</a></h3>
-      <div class="price-row">${price < product.price ? `<s><span class="sr-only">Preço original: </span>${money(product.price)}</s>` : ''}<strong><span class="sr-only">Preço demonstrativo: </span>${money(price)}</strong></div>
-      <p class="installment">3x de ${money(price / 3)} sem juros · demo</p>
+      <div class="price-row">${price < product.price ? `<s><span class="sr-only">Preço original: </span>${money(product.price)}</s>` : ''}<strong><span class="sr-only">Preço${demo ? ' demonstrativo' : ''}: </span>${money(price)}</strong></div>
+      <p class="installment">${demo ? `3x de ${money(price / 3)} sem juros · demo` : 'Pagamento combinado pelo WhatsApp'}</p>
       <a class="add-button" href="${url}">Escolher opções <span aria-hidden="true">↗</span></a>
     </div>
   </article>`;

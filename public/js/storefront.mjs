@@ -115,10 +115,10 @@ export function initStorefront({ onSearch, onCategory, onFavorites, onCartChange
     else window.location.href = `/catalogo.html?busca=${encodeURIComponent(query)}#catalogo`;
     scrollToProducts();
   });
-  document.querySelector('#account-button').addEventListener('click', () => notify('A área de conta estará disponível em uma próxima etapa.'));
+  document.querySelector('#account-button').addEventListener('click', () => notify('Não é necessário criar conta. Escolha suas peças, revise a sacola e combine a compra pelo WhatsApp.'));
   document.querySelector('#newsletter-form')?.addEventListener('submit', event => {
     event.preventDefault();
-    document.querySelector('#newsletter-status').textContent = 'Obrigada pelo interesse ♡ Esta é uma demonstração; seu e-mail não foi armazenado.';
+    document.querySelector('#newsletter-status').textContent = 'Obrigada pelo interesse ♡ Este formulário não envia nem armazena e-mails.';
     event.target.reset();
   });
   document.addEventListener('keydown', event => {

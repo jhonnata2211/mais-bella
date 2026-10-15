@@ -4,7 +4,9 @@
 (async () => {
   try {
     const { loadCatalog } = await import('./data/products.mjs');
-    const { categories } = await loadCatalog();
+    const { products, categories } = await loadCatalog();
+    const { applyDemoNotices } = await import('./commerce.mjs');
+    applyDemoNotices(products);
     // Categorias futuras vêm do banco; os cards editoriais da Home seguem preservados.
     const nav = document.querySelector('.nav-links');
     const promotion = nav.querySelector('[data-category="Promoções"]');
@@ -30,7 +32,7 @@
       initHome();
     }
   } catch (error) {
-    console.error('Não foi possível carregar o catálogo demonstrativo.', error);
+    console.error('Não foi possível carregar o catálogo.');
     const toast = document.querySelector('#toast');
     toast.textContent = 'Não foi possível carregar as peças. Recarregue a página para tentar novamente.';
     toast.classList.add('visible');

@@ -18,6 +18,8 @@ Loja de moda feminina com identidade de boutique: blush, rosa queimado, nude e o
 
 **MAISBELLA-008 — fotos para validação:** seleção pela galeria do celular, prévias, principal e remoção, com upload protegido e armazenamento local. Consulte a seção de fotos ao final.
 
+**MAISBELLA-009 — fluxo WhatsApp para validação:** revisão atualizada de estoque/preço, dados básicos e mensagem organizada, distinguindo produtos reais dos demonstrativos.
+
 ## Instalar e executar
 
 Pré-requisito: **Node.js 24.15 ou superior com `node:sqlite` disponível** e npm. Validado neste Android/Termux com Node.js 26.3.1 e SQLite 3.53.2. Use um navegador moderno com suporte a módulos JavaScript e ao elemento nativo `<dialog>`.
@@ -311,13 +313,13 @@ A seção MAISBELLA-006 abaixo documenta o painel que agora utiliza os validador
 
 ## Limitações desta etapa
 
-Produtos, preços, parcelamento, promoções, datas, estoques e a seleção de mais vendidos são fictícios. Benefícios e pagamentos são apresentação visual do serviço previsto. Não há produtos disponíveis para compra.
+Os produtos do seed continuam fictícios e identificados por `demo=true`. Cadastros operacionais do painel usam `demo=false`. Antes de uso comercial, desative os demonstrativos e revise as informações reais da loja; o fechamento ocorre pelo WhatsApp, sem pagamento ou reserva automática no site.
 
 Favoritos guardam apenas IDs na chave `maisbella:favorites:v1` do `localStorage`, com sincronização entre abas da mesma origem e fallback em memória. Não há conta ou sincronização entre dispositivos. A sacola guarda apenas itens demonstrativos na chave `maisbella:cart:v1` do mesmo armazenamento; quando o armazenamento estiver bloqueado, há feedback e fallback em memória apenas na página atual.
 
 A página individual usa `/produto.html?slug=slug` e também aceita `?id=id`. O destino fica centralizado em `productURL`. URLs antigas com `/catalogo.html?produto=slug` redirecionam para a nova página pelo JavaScript. Produto inexistente ou inativo mostra “Produto não encontrado” e retorno ao catálogo.
 
-Há SQLite, autenticação e painel administrativo. Ainda não há persistência de pedidos, pagamento, checkout, cálculo de frete ou coleta de e-mails. Upload de fotos está documentado na etapa 008. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
+Há SQLite, autenticação e painel administrativo. Ainda não há persistência de pedidos, pagamento, checkout, cálculo de frete ou coleta de e-mails. Upload de fotos está documentado na etapa 008. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. A sacola consulta o catálogo atualizado antes de abrir o WhatsApp; não há reserva nem confirmação transacional de venda no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
 
 A vitrine não exige credenciais; o painel exige configuração explícita. `.env` e `node_modules` estão ignorados pelo Git.
 
@@ -551,3 +553,72 @@ Validação manual pendente em Android, mantendo o roteiro responsivo anterior:
 A primeira implantação exige **processo único e disco persistente**. Hospedagem com filesystem efêmero perderá as fotos em reinícios/deploys; réplicas sem volume compartilhado também não atendem esta arquitetura. Nenhum serviço externo foi integrado. Ao escolher a hospedagem, provisione um volume com backup ou migre `MediaService` para armazenamento de objetos, mantendo/adaptando as referências e a leitura pública.
 
 Esta versão valida assinatura/estrutura, mas **não faz decodificação completa, reencode, redução automática, thumbnails físicos, antivírus nem remoção de EXIF/metadados**. Não equivale a uma inspeção completa dos pixels; imagens exóticas ou corrompidas além dos cabeçalhos ainda podem falhar na exibição. Arquivos originais e suas dimensões/metadados são preservados. A otimização e normalização poderão ser tratadas depois conforme necessidade real e compatibilidade do runtime. As limitações de concorrência/última gravação da etapa 006 permanecem. Sem pagamentos, frete, pedidos persistentes ou gerenciador complexo de mídia.
+
+## Compra pelo WhatsApp — MAISBELLA-009
+
+Fluxo atual: **vitrine → produto → cor/tamanho em estoque → quantidade → adicionar à sacola → revisar sacola → dados básicos → Finalizar pelo WhatsApp**. A conversa abre com a mensagem pronta; a cliente ainda precisa revisar e enviar dentro do WhatsApp. A loja não registra pedido, pagamento, reserva ou baixa de estoque automaticamente. Painel administrativo, SQLite, autenticação, CSRF e upload permanecem sem alterações nesta etapa.
+
+### Produto e sacola
+
+A galeria mantém a foto principal retornada primeiro pela API e as demais fotos com miniaturas. A página mostra preço original/promoção, descrição e estoque da combinação de cor/tamanho. Características com **uma única opção em estoque** são preenchidas automaticamente; havendo mais de uma opção válida, a cliente escolhe. Variações inativas ou esgotadas não podem ser adicionadas; a mensagem de esgotamento é “Essa opção está esgotada.” Quantidade e adições repetidas respeitam o estoque disponível para aquela combinação, incluindo o que já está na sacola.
+
+Depois de adicionar, **Revisar sacola e finalizar** leva diretamente à página da sacola. A sacola lateral do cabeçalho continua disponível. A revisão mostra foto, nome, cor, tamanho, quantidade, preço unitário e subtotal por item, com aumento/diminuição, remoção e link para continuar comprando. O resumo mostra **Subtotal dos produtos**; não calcula frete. Entrega, retirada e pagamento serão combinados pelo WhatsApp.
+
+O subtotal soma centavos. IDs, preços, imagens e variações são recompostos a partir do catálogo, sem confiar em preços ou imagens adulterados no localStorage. A chave `maisbella:cart:v1` e os favoritos existentes foram preservados. Se o armazenamento estiver indisponível, a sacola usa memória durante a visita.
+
+### Conferência antes de abrir a conversa
+
+Com os dados obrigatórios válidos, o botão consulta novamente **GET `/api/products` e GET `/api/categories`**, sem cache e sem enviar dados pessoais. A sacola é então reconciliada com o catálogo atualizado:
+
+- quantidade acima do estoque é ajustada ao limite e comunicada;
+- itens desativados, removidos ou sem aquela variação disponível são retirados com aviso;
+- preços alterados são atualizados e comunicados;
+- alterações de quantidade detectadas em outra aba também pedem revisão.
+
+Quando há ajuste, **o WhatsApp não abre nessa tentativa**. A cliente vê o aviso, revisa a sacola e toca novamente para confirmar. Se a API falhar, a conversa também não abre e a sacola é mantida para tentar depois. Durante a conferência, há indicação de carregamento e prevenção de envio duplicado. Nenhuma chamada de escrita é feita ao backend para finalizar a compra.
+
+Essa conferência **não é reserva nem garantia de concorrência**: outra venda pode ocorrer depois da leitura. A proprietária deve confirmar disponibilidade, condições, entrega e pagamento no atendimento. Mensagens preparadas fora da loja também podem ser editadas pela cliente; o atendimento precisa conferir seus valores antes de concluir a venda.
+
+### Dados e mensagem
+
+Campos obrigatórios: **nome, WhatsApp/telefone com DDD, cidade, bairro e entrega/retirada**. A observação de entrega já existente continua opcional e é removida ao escolher retirada. Não são pedidos CPF, cartão ou endereço completo.
+
+A mensagem contém **MEU PEDIDO**, itens numerados com cor/tamanho/quantidade/valor unitário/subtotal, subtotal dos produtos, **DADOS**, **RECEBIMENTO** e a solicitação de confirmação. O link usa `encodeURIComponent`, preservando acentos, símbolos e quebras de linha. O único número comercial permanece em **`public/js/config.mjs`**; ele não foi alterado nem duplicado. Se a configuração estiver vazia/inválida, finalização e atalhos continuam bloqueados com explicação.
+
+Dados do formulário ficam somente na memória/campos desta visita. Não vão ao SQLite, API, localStorage ou logs. Ao abrir o WhatsApp, passam a integrar a URL/mensagem solicitada pela cliente. O formulário é limpo ao sair da página, inclusive com BFCache; uma conferência pendente não provoca navegação automática ao retornar. A sacola não é esvaziada ao abrir a conversa, pois a aplicação não sabe se a mensagem foi enviada.
+
+### Produtos reais e demonstração
+
+O campo confiável é **`demo` do SQLite/API**, não nome, fotografia, ID ou informação salva na sacola. Produtos criados pelo painel são operacionais (`demo=false`); o seed mantém seus produtos com `demo=true`. O indicador de demonstração existente é preservado na edição.
+
+Para produtos reais, cards/página/sacola/mensagem não apresentam preços fictícios, rótulo “demo”, promessa de fotos futuras ou parcelamento inventado. Pagamento é combinado no WhatsApp. Sem medidas oficiais cadastradas, o produto real oferece consultar medidas pelo WhatsApp, sem apresentar a tabela fictícia como referência comercial. Uma ilustração provisória continua identificada como ilustração quando ainda não há foto, independentemente de o produto ser real.
+
+Produtos `demo=true` continuam claramente marcados nos cards, página, sacola e mensagem. Um catálogo misto mostra aviso geral e distingue os itens; um pedido só com produtos reais não é chamado de demonstrativo. Os avisos globais de demonstração ficam ocultos quando não há produtos demonstrativos ativos. Os seeds não foram apagados nem executados no banco da loja nesta etapa.
+
+**Antes de produção:** no painel, desative individualmente os produtos identificados como **Demonstração**, sem desativar categorias compartilhadas com produtos reais. Confira que eles sumiram da API/vitrine. Configure `NODE_ENV=production` e `SEED_DEMO=false`; isso impede seed automático, mas **não remove nem desativa os produtos já gravados**. Para uma implantação nova, use banco operacional vazio e cadastre informações/fotos verificadas. Revise preços, estoque, condições de atendimento e demais textos comerciais antes de liberar a loja. Não converta os produtos fictícios em reais apenas trocando fotografia ou nome.
+
+### Testes e validação manual
+
+```sh
+npm test
+node --check server.js
+find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+git diff --check
+git status --short
+npm start
+```
+
+São **135 testes**: os 120 anteriores, com expectativas de mensagem ajustadas ao novo texto e fixture explicitamente demonstrativa, mais 15 novos casos. Os novos cobrem produto real/misto, opção única, esgotamento/inativos, estoque e preço alterados, indisponibilidade da API, fallback em memória, mudanças entre abas, avisos de demonstração e fluxo HTTP/SQLite real até a mensagem. A integração confirma que as consultas não enviam dados pessoais nem reservam estoque. Testes usam dados sintéticos e SQLite em memória/arquivos temporários próprios; não leem o banco operacional nem contatam o WhatsApp.
+
+A validação visual em navegador real permanece necessária. Confira em Android, especialmente **360, 390 e 412 px**:
+
+1. Produto real com fotos: principal, miniaturas, promoção, descrição, medidas por contato e ausência de avisos demonstrativos indevidos.
+2. Uma única cor/tamanho em estoque deve ficar selecionada; várias opções exigem escolha. Esgotados devem ficar indisponíveis. Adicione até o limite e tente ultrapassá-lo.
+3. Use “Revisar sacola e finalizar”. Confira fotos, preço unitário, subtotais, +/−, remoção, estado vazio e continuar comprando.
+4. Tente finalizar sem nome/telefone/cidade/bairro/recebimento; confira mensagens acessíveis. Alterne entrega/retirada e confira a observação opcional.
+5. Num banco de desenvolvimento, altere estoque ou preço pelo painel após adicionar à sacola. Na finalização, confira o aviso e que a conversa só pode abrir após nova revisão. Simule API offline e confirme o bloqueio sem perder a sacola.
+6. Confira a mensagem com acentos/símbolos, dados e subtotal. Abrir a conversa é suficiente para validar; não é necessário enviar o pedido. Volte ao navegador e confirme que os campos pessoais foram limpos.
+7. Role continuamente: o botão verde deve continuar fixo, sem piscar/desaparecer. Confira espaço das ações principais, teclado virtual, foco por Tab, conforto de toque e ausência de overflow horizontal (`document.documentElement.scrollWidth <= window.innerWidth`).
+8. Em ambiente de teste isolado, confira o cenário sem número configurado. Não altere o contato oficial da loja para executar testes automatizados.
+
+Nenhum novo endpoint, dependência, conta de cliente, checkout, gateway, Pix automático, frete automático ou painel/histórico de pedidos foi implementado. O navegador automatizado não está disponível neste ambiente; as conferências acima aguardam validação manual.

@@ -33,7 +33,7 @@ export function initHome() {
     const status = document.querySelector('#filter-status');
     const labels = [filters.category, filters.promotionsOnly && 'Promoções', filters.search && `Busca: “${filters.search}”`, filters.favoritesOnly && 'Seus favoritos'].filter(Boolean);
     status.hidden = !labels.length;
-    status.textContent = `${labels.join(' · ')} — ${visible.length} peça(s) demonstrativa(s)`;
+    status.textContent = `${labels.join(' · ')} — ${visible.length} peça(s)`;
   }
   document.querySelector('#show-all').addEventListener('click', () => { resetFilters(); showEverything = true; render(); });
   document.addEventListener('click', event => {

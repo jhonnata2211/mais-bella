@@ -1,3 +1,4 @@
+import { hasDemoItems, isDemoProduct } from './commerce.mjs';
 import { storeConfig } from './config.mjs';
 import { products } from './data/products.mjs';
 import { cartCount, cartSubtotal, itemKey } from './cart.mjs';
@@ -32,14 +33,14 @@ export function validateOrder(items, details = {}, { number = storeConfig.whatsa
       const product = findProduct({ id: item?.productId }, source);
       const validation = validateSelection(product, item, item?.quantity);
       if (!validation.ok || !Number.isFinite(item.price) || item.price !== effectivePrice(product) || item.slug !== product.slug || item.name !== product.name) {
-        errors.cart = 'Revise os itens: uma peça, preço ou variação não corresponde ao catálogo atual.';
+        errors.cart = 'A disponibilidade, o preço ou uma variação mudou. Revise os itens da sacola antes de continuar.';
         break;
       }
       const key = itemKey(item);
       const quantity = (quantities.get(key) || 0) + item.quantity;
       quantities.set(key, quantity);
       if (quantity > validation.stock) {
-        errors.cart = 'Uma variação ultrapassa o estoque demonstrativo. Ajuste as quantidades da sacola.';
+        errors.cart = 'Uma variação ultrapassa o estoque disponível. Ajuste as quantidades da sacola.';
         break;
       }
     }
@@ -59,17 +60,21 @@ export function generateOrderMessage(items, details) {
   const validation = validateOrder(items, details, { requireStoreNumber: false });
   if (!validation.ok) throw new Error('Revise os dados e os itens antes de gerar a mensagem.');
   const data = validation.details;
-  const lines = ['Olá! Quero fazer um pedido na Mais Bella ♥️', '', 'PEDIDO — DEMONSTRATIVO', 'Produtos, valores e estoque fictícios nesta etapa.', ''];
+  const source = products;
+  const demo = hasDemoItems(items, source);
+  const lines = ['Olá! Quero fazer um pedido na Mais Bella ♡', '', 'MEU PEDIDO'];
+  if (demo) lines.push('Atenção: itens marcados como DEMONSTRATIVO são fictícios e não estão à venda.');
+  lines.push('');
   items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.name}`, `Cor: ${item.color || 'Sem variação de cor'}`, `Tamanho: ${item.size || 'Sem variação de tamanho'}`,
+    lines.push(`${index + 1}. ${cleanLine(item.name)}${isDemoProduct(findProduct({ id: item.productId }, source)) ? ' [DEMONSTRATIVO]' : ''}`, `Cor: ${cleanLine(item.color) || 'Sem variação de cor'}`, `Tamanho: ${cleanLine(item.size) || 'Sem variação de tamanho'}`,
       `Quantidade: ${item.quantity}`, `Valor unitário: ${money(item.price)}`,
       `Subtotal: ${money(Math.round(item.price * 100) * item.quantity / 100)}`, '');
   });
-  lines.push(`TOTAL: ${money(cartSubtotal(items))}`, `Quantidade total: ${cartCount(items)}`, 'Frete não incluído; disponibilidade, entrega e pagamento a confirmar.', '',
-    'CLIENTE', `Nome: ${data.name}`, `WhatsApp: ${data.phone}`, `Cidade: ${data.city}`, `Bairro: ${data.neighborhood}`, '',
-    'FORMA DE RECEBIMENTO', data.receiving === 'delivery' ? 'Entrega — condições e frete a confirmar no atendimento.' : 'Retirada — local e horário a combinar pelo WhatsApp.');
+  lines.push(`Total dos produtos: ${money(cartSubtotal(items))}`, `Quantidade total: ${cartCount(items)}`, 'Frete não incluído; disponibilidade, entrega e pagamento a confirmar.', '',
+    'DADOS', `Nome: ${data.name}`, `WhatsApp: ${data.phone}`, `Cidade: ${data.city}`, `Bairro: ${data.neighborhood}`, '',
+    'RECEBIMENTO', data.receiving === 'delivery' ? 'Entrega — condições e frete a confirmar no atendimento.' : 'Retirada — local e horário a combinar pelo WhatsApp.');
   if (data.receiving === 'delivery' && data.deliveryNote) lines.push(`Observação: ${data.deliveryNote}`);
-  lines.push('', 'Gostaria de confirmar disponibilidade, entrega e pagamento.');
+  lines.push('', 'Gostaria de confirmar a disponibilidade, entrega e forma de pagamento.');
   return lines.join('\n');
 }
 
