@@ -41,6 +41,7 @@
     <div id="workspace" hidden>
       <section id="view-home" data-view="home" aria-labelledby="home-title">
         <div class="page-heading"><div><span class="eyebrow">SEU DIA NA MAIS BELLA</span><h1 id="home-title" tabindex="-1">Vamos cuidar da coleção?</h1><p class="muted">Uma visão simples do que está na sua loja.</p></div><button type="button" data-new-product class="primary-button">+ Novo produto</button></div>
+        <p><button type="button" id="change-password" class="text-button">Alterar senha</button></p>
         <div id="metrics" class="metrics"></div>
         <p class="caption">Produtos ativos e inativos seguem o status do cadastro. Estoque considera variações ativas, mesmo em produtos fora da vitrine. Categorias incluem ativas e inativas.</p>
         <p id="demo-summary" class="notice" hidden></p>
@@ -98,6 +99,16 @@
   <dialog id="category-dialog" aria-labelledby="category-editor-title" class="editor-dialog">
     <div class="dialog-heading"><div><span class="eyebrow">ORGANIZE A COLEÇÃO</span><h2 id="category-editor-title">Nova categoria</h2></div><button type="button" id="close-category" class="quiet-button" aria-label="Fechar categoria">✕</button></div>
     <form id="category-form"><label for="category-name">Nome<input id="category-name" name="name" maxlength="120" required></label><details class="advanced"><summary>Endereço e ordem de exibição</summary><div class="section-content"><label for="category-slug">Endereço (slug)<input id="category-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required></label><p class="caption">Preenchido automaticamente para novas categorias. Use letras minúsculas, números e hífens.</p><label for="sortOrder">Ordem na loja<input id="sortOrder" name="sortOrder" type="number" min="0" max="2147483647" step="1" value="0" required></label></div></details><label class="check-label"><input name="active" type="checkbox" checked> Categoria ativa</label><p class="caption">Uma categoria inativa oculta seus produtos da vitrine.</p><p id="category-feedback" role="alert" tabindex="-1"></p><div class="dialog-actions"><button type="submit" class="primary-button">Salvar categoria</button><button type="button" id="cancel-category" class="quiet-button">Cancelar</button></div></form>
+  </dialog>
+  <dialog id="password-dialog" aria-labelledby="password-title" class="editor-dialog">
+    <h2 id="password-title">Alterar senha</h2><p class="caption">Use uma senha de 15 a 256 caracteres. Depois de salvar, entre novamente em seus dispositivos.</p>
+    <form id="password-form">
+      <label for="current-password">Senha atual<input id="current-password" name="currentPassword" type="password" autocomplete="current-password" maxlength="256" required></label>
+      <label for="new-password">Nova senha<input id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="15" maxlength="256" required></label>
+      <label for="password-confirmation">Confirme a nova senha<input id="password-confirmation" name="confirmation" type="password" autocomplete="new-password" minlength="15" maxlength="256" required></label>
+      <p id="password-feedback" role="alert" tabindex="-1"></p>
+      <div class="dialog-actions"><button type="submit" class="primary-button">Salvar nova senha</button><button type="button" id="cancel-password" class="quiet-button">Cancelar</button></div>
+    </form>
   </dialog>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description" class="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-description"></p><form method="dialog" class="dialog-actions"><button value="cancel" class="secondary-button" autofocus>Voltar</button><button id="confirm-accept" value="accept" class="primary-button">Continuar</button></form></dialog>
 </body>

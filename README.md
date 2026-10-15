@@ -41,7 +41,7 @@ Para outra porta:
 PORT=4000 npm start
 ```
 
-O servidor inicializa SQLite/migrations antes de aceitar conexões. Em desenvolvimento, aplica automaticamente o seed idempotente; em produção, o padrão é não aplicar. Express serve somente `public` e a API, usando a porta configurada ou 3000. Abra as páginas pelo servidor, evitando `file://`, pois elas carregam módulos JavaScript.
+O servidor inicializa SQLite/migrations antes de aceitar conexões. O seed é desativado por padrão em todos os ambientes; em desenvolvimento/teste só é aplicado com SEED_DEMO=true explícito. Produção recusa esse valor. Express serve somente `public` e a API, usando a porta configurada ou 3000. Abra as páginas pelo servidor, evitando `file://`, pois elas carregam módulos JavaScript.
 
 ## Arquivos principais
 
@@ -139,7 +139,7 @@ find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -ex
 
 ## Validação manual no navegador
 
-1. Inicie `npm start` e visite a Home e `/catalogo.html`. Confira as vitrines originais e o link “Explorar catálogo”. O catálogo sem filtros deve exibir **12 de 12 produtos demonstrativos**.
+1. Inicie `npm start` e visite a Home e `/catalogo.html`. Confira as vitrines originais e o link “Explorar catálogo”. Com seed explicitamente habilitado em banco de desenvolvimento, o catálogo sem filtros deve exibir **12 de 12 produtos demonstrativos**.
 2. Teste Home, catálogo, produto e sacola em **320, 375, 768 e 1440 px** nas ferramentas de desenvolvimento. Confira legibilidade, menu mobile, filtros, cards e ausência de rolagem horizontal. Uma checagem no console é `document.documentElement.scrollWidth <= window.innerWidth`.
 3. No catálogo, combine **Calças + GG + Chumbo**: deve restar a calça Amélia. Limpe os filtros. Use mínimo **179,90** e máximo **189,90**: devem aparecer Amélia e Essência. Inverta a faixa para conferir a mensagem de erro.
 4. Busque **AMELIA**, **calça**, **entardecer**, **mangas delicadas** e um termo inexistente. A busca do header também consulta as descrições na Home e no catálogo. Verifique o estado vazio.
@@ -252,24 +252,24 @@ As tabelas usam SQLite STRICT, foreign keys, CHECKs para estoque/preços/boolean
 | --- | --- |
 | `PORT` | Porta HTTP; padrão 3000 |
 | `DB_PATH` | Caminho SQLite relativo à raiz ou absoluto; padrão `data/maisbella.sqlite` |
-| `NODE_ENV` | Em `production`, seed automático fica desativado por padrão |
-| `SEED_DEMO` | `true`/`false` para definir explicitamente o seed no startup |
+| `NODE_ENV` | `development`, `test` ou `production`; produção exige configuração segura |
+| `SEED_DEMO` | `false` por padrão; `true` explícito somente fora de produção |
 
 Banco e diretório são criados se necessário. Migrations numeradas de `src/db/migrations` são executadas em transação e registradas com checksum. As já aplicadas não são reexecutadas. Não altere migrations aplicadas: adicione uma nova. Não há reset automático, DROP ou exclusão de dados no startup. Se um checksum divergir ou houver erro, a transação é revertida e a aplicação não inicia.
 
 Para aplicar manualmente o seed de desenvolvimento:
 
 ```sh
-npm run db:seed
-npm run db:seed
+SEED_DEMO=true npm run db:seed
+SEED_DEMO=true npm run db:seed
 ```
 
-Na primeira aplicação em um banco novo: `{"applied":true,"inserted":12}`. Na segunda: `{"applied":false,"inserted":0}`. IDs e slugs já ocupados são preservados; o seed não atualiza preços, estoque, nomes ou status existentes. A marca em `seed_runs` impede que uma execução posterior restaure produtos editados ou removidos. O seed explícito funciona mesmo com `SEED_DEMO=false`; não o execute num ambiente onde não deseja dados demonstrativos.
+Na primeira aplicação em um banco novo: `{"applied":true,"inserted":12}`. Na segunda: `{"applied":false,"inserted":0}`. IDs e slugs já ocupados são preservados; o seed não atualiza preços, estoque, nomes ou status existentes. A marca em `seed_runs` impede que uma execução posterior restaure produtos editados ou removidos. O comando também exige `SEED_DEMO=true` e recusa produção. Não o execute num ambiente onde não deseja dados demonstrativos.
 
 Para usar outro arquivo no Termux sem tocar no banco padrão:
 
 ```sh
-DB_PATH=data/desenvolvimento.sqlite npm run db:seed
+DB_PATH=data/desenvolvimento.sqlite SEED_DEMO=true npm run db:seed
 DB_PATH=data/desenvolvimento.sqlite SEED_DEMO=false npm start
 ```
 
@@ -342,7 +342,7 @@ npm start
 
 O comando interativo solicita usuário e senha duas vezes, sem ecoar a senha, sem argumentos sensíveis no histórico e sem imprimir hash/segredo. Use uma senha exclusiva de **15 a 256 caracteres**, preferencialmente gerada por um gerenciador. O comando grava somente usuário, hash scrypt com sal aleatório e segredo criptográfico no `.env` privado. Não existe senha padrão, rota de cadastro ou credencial no frontend. Não execute o comando por pipe. Ele recusa arquivo que já contenha credenciais; não gera nem altera produtos. Sem credenciais, a vitrine funciona e a API administrativa responde 503. Configuração parcial/inválida impede iniciar o servidor.
 
-A senha usa `scrypt` nativo do Node, N=32768, r=8, p=3, sal aleatório de 16 bytes, saída de 64 bytes e comparação de tempo constante. O banco não recebe credenciais. Não copie o `.env` para Git, mensagens, capturas ou diretórios públicos. Trate o hash como credencial sensível. O `.env.example` contém somente nomes de variáveis e configuração local sem credenciais.
+A senha usa `scrypt` nativo do Node, N=32768, r=8, p=3, sal aleatório de 16 bytes, saída de 64 bytes e comparação de tempo constante. Desde a etapa 010, a primeira alteração de senha grava somente o novo hash na tabela privada admin_credentials; o ambiente fornece o hash inicial. Não copie o `.env` para Git, mensagens, capturas ou diretórios públicos. Trate o hash como credencial sensível. O `.env.example` contém somente nomes de variáveis e configuração local sem credenciais.
 
 | Variável | Configuração |
 | --- | --- |
@@ -357,7 +357,7 @@ A senha usa `scrypt` nativo do Node, N=32768, r=8, p=3, sal aleatório de 16 byt
 
 Para acessar pelo IP na rede local, ajuste `APP_ORIGIN` para o endereço exato usado no navegador e reinicie. Não transmita credenciais por HTTP em redes não confiáveis. Para mudar a porta, ajuste também `APP_ORIGIN`. Não configure `TRUST_PROXY` sem o proxy descrito acima.
 
-Para trocar credenciais: pare a aplicação, remova **somente** as três linhas de credenciais do `.env` privado, execute novamente `npm run admin:configure` e reinicie. Nunca coloque hash/senha em comandos do shell. Reiniciar invalida todas as sessões. Não há cadastro de múltiplos usuários, recuperação de senha ou níveis adicionais de acesso; a identidade configurada tem autorização para todo o catálogo.
+Para alterar a senha, use Início → Alterar senha no painel. Em caso de esquecimento, pare a aplicação e use `MAINTENANCE_MODE=true npm run admin:configure -- --reset`, conforme a seção 010. Não remova credenciais do ambiente nem troque ADMIN_USER isoladamente: o banco pode conter o hash atualizado. Nunca coloque hash/senha em comandos do shell. Não há múltiplos usuários ou recuperação por e-mail; a identidade configurada tem autorização para todo o catálogo.
 
 ### Sessões, CSRF e tentativas de login
 
@@ -378,6 +378,7 @@ Todas estão sob `/api/admin`. Exceção à autenticação: somente `POST /login
 | `POST /login` | JSON `{ username, password }`; responde `{ authenticated, csrfToken, expiresAt }` e cookie |
 | `GET /session` | Consulta sessão e token CSRF; não estende o prazo |
 | `POST /logout` | Invalida sessão e remove cookie; enviar `{}` |
+| `POST /password` | Exige senha atual, nova e confirmação; persiste hash e invalida todas as sessões |
 | `GET /products` | `{ products }`, inclui inativos e todas as variações |
 | `GET /products/:id` | `{ product }` por ID estável, inclusive inativo |
 | `POST /products` | Criação validada; responde 201 `{ product }` |
@@ -608,7 +609,7 @@ git status --short
 npm start
 ```
 
-São **135 testes**: os 120 anteriores, com expectativas de mensagem ajustadas ao novo texto e fixture explicitamente demonstrativa, mais 15 novos casos. Os novos cobrem produto real/misto, opção única, esgotamento/inativos, estoque e preço alterados, indisponibilidade da API, fallback em memória, mudanças entre abas, avisos de demonstração e fluxo HTTP/SQLite real até a mensagem. A integração confirma que as consultas não enviam dados pessoais nem reservam estoque. Testes usam dados sintéticos e SQLite em memória/arquivos temporários próprios; não leem o banco operacional nem contatam o WhatsApp.
+Na etapa 009 eram **136 testes**: os 120 anteriores, com expectativas de mensagem ajustadas ao novo texto e fixture explicitamente demonstrativa, mais 16 novos casos (incluindo o refinamento final). Os novos cobrem produto real/misto, opção única, esgotamento/inativos, estoque e preço alterados, indisponibilidade da API, fallback em memória, mudanças entre abas, avisos de demonstração e fluxo HTTP/SQLite real até a mensagem. A integração confirma que as consultas não enviam dados pessoais nem reservam estoque. Testes usam dados sintéticos e SQLite em memória/arquivos temporários próprios; não leem o banco operacional nem contatam o WhatsApp.
 
 A validação visual em navegador real permanece necessária. Confira em Android, especialmente **360, 390 e 412 px**:
 
@@ -622,3 +623,129 @@ A validação visual em navegador real permanece necessária. Confira em Android
 8. Em ambiente de teste isolado, confira o cenário sem número configurado. Não altere o contato oficial da loja para executar testes automatizados.
 
 Nenhum novo endpoint, dependência, conta de cliente, checkout, gateway, Pix automático, frete automático ou painel/histórico de pedidos foi implementado. O navegador automatizado não está disponível neste ambiente; as conferências acima aguardam validação manual.
+
+## Preparação de produção — MAISBELLA-010
+
+As instruções desta seção são as operacionais atuais; as etapas anteriores registram a evolução do projeto. Não houve deploy, escolha de provedor ou limpeza do banco existente. A [auditoria de conteúdo](docs/content-audit.md) classifica as ocorrências em código/testes, interface, seed e documentação.
+
+### Ambientes e configuração
+
+| Variável | Uso |
+| --- | --- |
+| `NODE_ENV` | `development` (padrão), `test` ou `production`; outro valor é recusado |
+| `PORT` | Porta do processo, padrão 3000 |
+| `DB_PATH` | SQLite, padrão `data/maisbella.sqlite`; aceite caminho absoluto em volume persistente |
+| `UPLOAD_DIR` | Fotos, padrão `data/uploads`; caminho personalizado precisa ficar fora do repositório |
+| `APP_ORIGIN` | Origem exata do navegador, sem barra final; HTTPS obrigatório em produção |
+| `ADMIN_USER` | Identificador administrativo configurado pelo responsável técnico |
+| `ADMIN_PASSWORD_HASH` | Hash scrypt inicial, nunca senha em texto; valor privado gerado pela ferramenta |
+| `SESSION_SECRET` | Segredo privado com pelo menos 32 bytes aleatórios em hexadecimal |
+| `SEED_DEMO` | `false` por padrão em todos os ambientes; `true` é recusado em produção |
+| `TRUST_PROXY` | Ausente por padrão; só aceita `loopback` para proxy confiável na mesma máquina |
+| `MAINTENANCE_MODE` | Somente comandos offline; `true` declara que o responsável parou o servidor |
+| `BACKUP_DIR` | Somente backup: diretório novo fora do projeto, do banco e dos uploads; pai deve existir |
+
+O WhatsApp comercial público continua em **um único local**, `public/js/config.mjs`. Não foi duplicado em variável de ambiente nem alterado. `.env.example` contém somente instruções e valores locais não secretos. O `.env` real permanece intocado e ignorado.
+
+Desenvolvimento começa vazio se ainda não houver banco. Para optar pelos exemplos, em um banco de desenvolvimento:
+
+```sh
+SEED_DEMO=true npm run db:seed
+SEED_DEMO=false npm start
+```
+
+O servidor também aplica seed no startup quando explicitamente habilitado fora de produção. É idempotente, não substitui IDs/edições e mantém `seed_runs`. Alterar `SEED_DEMO` não remove produtos já existentes. Testes usam memória/diretórios temporários próprios. Nunca use o banco de desenvolvimento como banco de testes.
+
+Produção nova deve usar outro banco vazio e diretórios persistentes. Prepare variáveis privadas no futuro ambiente e configure o primeiro administrador com `npm run admin:configure` em terminal interativo, sem credenciais em argumentos. Depois:
+
+```sh
+# Somente após configurar credenciais/segredo privados e APP_ORIGIN=https://seu-dominio
+NODE_ENV=production SEED_DEMO=false npm start
+```
+
+A produção recusa credenciais ausentes/inválidas, segredo fraco, origem HTTP, seed habilitado e trust proxy genérico. Cookies usam Secure, HttpOnly, SameSite=Strict e prefixo `__Host-`; CSRF, expiração de 30 minutos, scrypt e rate limiting permanecem. O HTML do login é público; **dados e operações administrativas exigem sessão**, e escritas também exigem origem exata e CSRF. Não há cadastro público de administradores.
+
+O processo HTTP atual precisa de um terminador TLS para atender a origem HTTPS. `TRUST_PROXY=loopback` só serve se o proxy confiável estiver na mesma máquina e a porta Node não estiver exposta diretamente à internet. O proxy deve substituir corretamente os headers de encaminhamento, incluindo IP e protocolo. Não use `trust proxy=true` para contornar configuração. Um provedor com outra topologia exigirá revisão explícita antes do deploy. Consulte a [documentação de proxies do Express](https://expressjs.com/en/guide/behind-proxies/).
+
+### Conteúdo e loja vazia
+
+Em produção a newsletter sem integração permanece oculta, inclusive se a leitura da configuração pública falhar. O endpoint de leitura `GET /api/storefront-config` expõe apenas se recursos de desenvolvimento estão habilitados, nunca credenciais. Produtos demonstrativos permanecem identificados se ainda existirem: o modo de produção **não transforma nem esconde a origem dos dados**. Com produtos reais, os textos fictícios e o guia demonstrativo não são utilizados.
+
+Home e catálogo sem produtos ativos mostram **“Novidades chegando em breve ♡”**. Busca/categoria sem resultados orientam a ajustar filtros. Produto inexistente e sacola vazia mantêm estados amigáveis. Nenhum produto de preenchimento é criado. Categorias editoriais decorativas da Home e ilustrações da marca foram preservadas.
+
+O painel permite criar/editar categorias, nome, descrições, preço/promoção, cores/tamanhos/estoque, fotos, principal e status, mesmo após o catálogo ficar vazio. Cadastre categorias antes dos produtos. Novos produtos do painel são reais (`demo=false`); não reutilize cadastros de demonstração como peças reais, pois sua marca é preservada por segurança.
+
+### Alterar senha e recuperar acesso
+
+No painel: **Início → Alterar senha**. Informe senha atual, nova senha e confirmação (15–256 caracteres). `POST /api/admin/password` exige sessão, origem e CSRF; senha atual incorreta participa do limite de tentativas. Após salvar, **todas as sessões desse processo são invalidadas**, inclusive a atual. Entre novamente nos dispositivos com a nova senha.
+
+Somente o novo hash scrypt é armazenado em `admin_credentials` (migration 002). O hash inicial do ambiente é usado apenas enquanto não houver senha persistida. A nova senha não altera `.env`, não é retornada nem registrada em logs. A identidade do usuário precisa continuar coerente entre ambiente e banco; não edite `ADMIN_USER` isoladamente. Não há recuperação por e-mail.
+
+Se a proprietária esquecer a senha, o responsável técnico deve parar o servidor e executar em terminal interativo privado:
+
+```sh
+MAINTENANCE_MODE=true npm run admin:configure -- --reset
+```
+
+A ferramenta solicita e confirma a nova senha com entrada oculta, usa o usuário já configurado e grava só o hash no banco configurado. Não imprime hash ou senha e não altera o `.env` existente nesse modo. Reinicie o servidor depois: reiniciar invalida todas as sessões. Sem `--reset`, a ferramenta só configura o primeiro administrador e recusa sobrescrever credenciais existentes. Preserve as variáveis privadas separadamente do backup, em local seguro.
+
+### Persistência e backup
+
+A futura hospedagem deve oferecer **processo único** e disco persistente gravável para SQLite (incluindo WAL/SHM durante operação) e `UPLOAD_DIR`. Não use filesystem efêmero nem réplicas independentes. Configure caminhos absolutos no volume escolhido, fora de `public`. O servidor usa umask restritiva para novos arquivos; mantenha diretórios privados acessíveis só ao usuário do processo. Não foi adicionado outro banco ou serviço externo.
+
+Faça backup antes da limpeza, antes de atualizar o código e regularmente conforme a frequência de alterações (por exemplo, diariamente quando a loja estiver em uso). Com servidor e comandos de escrita **parados**, defina `DB_PATH`/`UPLOAD_DIR` corretos e um destino novo externo ao projeto:
+
+```sh
+# Exemplo de caminhos; ajuste para os volumes reais no futuro ambiente.
+MAINTENANCE_MODE=true DB_PATH=/volume/maisbella/catalog.sqlite UPLOAD_DIR=/volume/maisbella/uploads BACKUP_DIR=/backups/maisbella-AAAA-MM-DD npm run production:backup
+```
+
+O pai de `BACKUP_DIR` precisa existir. O comando recusa sobrescrita e destinos dentro do código, do diretório do banco ou dos uploads. Usa a [API de backup SQLite do Node](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html#sqlitebackupsourceDb-destination-options), verifica integridade e consolida o snapshot em um SQLite independente de WAL/SHM. Copia apenas fotos publicadas referenciadas nesse snapshot, com nomes controlados. Não copia `.env`, node_modules, temporários, uploads órfãos ou a árvore inteira do projeto. Assets versionados vêm do código. Falta de foto referenciada interrompe o processo; pasta marcada `INCOMPLETO` não é um backup válido.
+
+O backup contém `catalog.sqlite`, `uploads/products` e `manifest.json`. **O banco contém o hash administrativo persistido**: trate todo backup como privado, proteja as cópias e guarde outra cópia fora do dispositivo/servidor. Credenciais/segredo do ambiente precisam de guarda privada separada; não estão nesse backup. Não há criptografia ou envio externo automático.
+
+Para restaurar, com a aplicação parada: confira ausência de `INCOMPLETO` e integridade do SQLite; use diretórios novos; restaure `catalog.sqlite` para `DB_PATH` e a pasta `uploads` para `UPLOAD_DIR`; restaure a configuração privada por meio seguro e o código correspondente. Não misture WAL/SHM de um banco antigo com o snapshot. Inicie uma instância e valide login, catálogo e fotos antes de liberar acesso. Registre separadamente a versão do código associada ao backup. A combinação banco+fotos só é garantida operacionalmente se não houver gravações concorrentes: a variável de manutenção é uma declaração do operador, não um bloqueio remoto do servidor.
+
+### Cleanup futuro: simular primeiro
+
+**Não foi executada limpeza real nesta etapa.** O comando exige ação explícita e usa o banco já existente; não cria nem migra banco por engano. Para listar produtos e referências afetados sem alterar dados:
+
+```sh
+npm run production:cleanup -- --dry-run
+```
+
+O relatório mostra IDs/nomes dos produtos `demo=1` e referências de imagens exclusivas deles. Não usa nome, slug ou uma lista histórica de IDs para decidir exclusão. Produtos `demo=0` permanecem, mesmo se tiverem nome/ID de exemplo. Categorias ficam intactas porque não possuem marca de demonstração confiável. Usuário/hash administrativo, estrutura e histórico do seed também permanecem.
+
+Somente no futuro, após revisar a simulação e confirmar backup, com servidor parado e `DB_PATH` explícito:
+
+```sh
+MAINTENANCE_MODE=true SEED_DEMO=false DB_PATH=/volume/maisbella/catalog.sqlite npm run production:cleanup -- --apply --confirm=REMOVE_DEMOS
+```
+
+Sem manutenção, confirmação exata ou com seed habilitado, a execução real é recusada. A remoção dos produtos e das relações de fotos/variações ocorre em uma transação. Arquivos físicos **não são removidos pelo cleanup do catálogo**: podem ficar órfãos, sem causar referência quebrada nem apagar foto compartilhada com produto real. Assets versionados nunca são apagados. Isso evita exclusão de arquivo antes de um possível rollback SQLite.
+
+Para fotos órfãs, use posteriormente o comando existente `npm run media:cleanup` (simulação) e, só após revisão/backup e servidor parado, `npm run media:cleanup -- --apply`. Ele preserva referências vivas e só remove arquivos de nomes gerados com mais de 24 horas, além de temporários expirados. Categorias sem produtos podem ser desativadas pelo painel; não há exclusão destrutiva automática.
+
+### Erros, validação e checklist antes do deploy
+
+Erros HTTP internos permanecem genéricos, sem stack, SQL, caminhos, senha, hash ou corpo da requisição. Logs inesperados contêm somente evento, método, padrão da operação e categoria limitada do erro. Não são registrados cookies, sessões, CSRF, dados do formulário ou mensagem WhatsApp. Logs de proxy/hospedagem também precisam ser configurados para não registrar corpos, cookies ou query strings sensíveis.
+
+```sh
+npm test
+node --check server.js
+find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+git diff --check
+git status --short
+```
+
+Antes de publicar:
+
+- Validar no Android: painel/login/logout, alteração de senha (duas abas), senha antiga recusada e nova aceita após reinício; fotos/principal e edição persistentes.
+- Conferir em banco **isolado** a instalação vazia, estados de home/catálogo, categoria sem peças, busca sem resultados, produto inexistente e sacola vazia. Não esvazie o banco atual para testar.
+- Revisar dry-run; executar backup e testar restauração isolada; só então planejar a limpeza real dos demos. Revisar textos, fotos, valores, estoque, contato comercial e condições reais de atendimento.
+- Definir persistência, permissões, domínio/TLS, proxy confiável, reinício supervisionado e política simples de retenção/cópia externa dos backups. Validar Secure/HTTPS, CSRF e rate limit na topologia real.
+- Confirmar que `.env`, bancos, uploads de runtime e backups não entram no Git; revisar o diff antes de qualquer commit.
+
+Limitações mantidas: uma instância, sessões/rate limiting em memória (reinício encerra sessões e zera contadores), sem MFA ou recuperação por e-mail; manutenção/backup exigem parada operacional, sem agendamento/cópia externa automática. Uploads continuam sem reencode/remoção de EXIF; revise metadados de fotos reais antes de publicar. Não há deploy ou garantia de disponibilidade sem validar a hospedagem futura. A loja segue sem pagamento online, conta de cliente, reserva de estoque ou pedidos persistentes.
+
+Validação automatizada da etapa 010: **148 testes aprovados**, sem falhas (136 anteriores e 12 novos). A migration 002 será aplicada automaticamente na próxima inicialização; ela adiciona a tabela de hashes administrativos sem remover dados do catálogo. A conferência visual e a operação das ferramentas pelo responsável técnico ainda devem ser validadas em ambiente isolado antes do deploy.

@@ -3,6 +3,11 @@
 // Inicializador leve. Dados, lógica, cards e interações ficam em módulos separados.
 (async () => {
   try {
+    try {
+      const response = await fetch('/api/storefront-config', { cache: 'no-store' });
+      const settings = response.ok ? await response.json() : {};
+      document.querySelectorAll('.newsletter').forEach(node => { node.hidden = settings.developmentFeatures !== true; });
+    } catch { /* Recursos opcionais permanecem ocultos se a configuração falhar. */ }
     const { loadCatalog } = await import('./data/products.mjs');
     const { products, categories } = await loadCatalog();
     const { applyDemoNotices } = await import('./commerce.mjs');

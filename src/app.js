@@ -25,6 +25,7 @@ function createApp({ db, config = require('./config').getConfig(), service = new
     } }
   }));
   app.use(express.json({ limit: '16kb', strict: true }));
+  app.get('/api/storefront-config', (req,res) => res.set('Cache-Control','no-store').json({ developmentFeatures: !config.admin.production }));
   app.use('/api/admin', require('./routes/admin-routes').adminRoutes(db, config.admin, media));
   app.use('/api', catalogRoutes(service));
   // Leitura somente de rasters publicados e ainda referenciados no catálogo.

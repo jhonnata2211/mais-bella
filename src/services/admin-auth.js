@@ -12,6 +12,7 @@ class AdminAuth {
   }
   session(token) { this.cleanup(); return token ? this.sessions.get(this.key(token)) : null; }
   invalidate(token) { if (token) this.sessions.delete(this.key(token)); }
+  invalidateAll() { this.sessions.clear(); }
   create() {
     this.cleanup();
     if (this.sessions.size >= 1000) this.sessions.delete(this.sessions.keys().next().value);
@@ -26,8 +27,9 @@ class AdminAuth {
     if (entry.count >= 5 || this.inflight >= 2 || this.attempts.size >= 10000 && !this.attempts.has(ip)) return 'limited';
     entry.count++; this.attempts.set(ip, entry); this.inflight++;
     try {
-      const valid = await verifyPassword(password, this.config.passwordHash);
-      if (!valid || user !== this.config.user) return false;
+      const expectedHash = this.config.passwordHash;
+      const valid = await verifyPassword(password, expectedHash);
+      if (!valid || expectedHash !== this.config.passwordHash || user !== this.config.user) return false;
       return true;
     } finally { this.inflight--; }
   }

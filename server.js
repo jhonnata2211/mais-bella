@@ -4,6 +4,7 @@ const { seedDemo } = require('./src/db/seed');
 const { loadEnvironment, getConfig } = require('./src/config');
 
 async function startServer() {
+  process.umask(0o077);
   loadEnvironment();
   const config = getConfig();
   const db = openDatabase(config.databasePath);
@@ -15,7 +16,7 @@ async function startServer() {
       server.once('error', reject);
       server.once('listening', () => { server.off('error', reject); resolve(); });
     });
-    console.log(`Mais Bella disponível em http://localhost:${server.address().port}`);
+    console.log(config.admin.production ? 'Mais Bella iniciada em modo produção.' : `Mais Bella disponível em http://localhost:${server.address().port}`);
     for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
       server.close(() => { db.close(); process.exit(0); });
     });

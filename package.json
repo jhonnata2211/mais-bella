@@ -1,14 +1,16 @@
 {
   "name": "mais-bella",
   "version": "1.0.0",
-  "description": "Loja de moda feminina Mais Bella — Home e catálogo demonstrativo",
+  "description": "Loja de moda feminina Mais Bella — catálogo e atendimento pelo WhatsApp",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.mjs",
     "db:seed": "node scripts/seed.js",
     "admin:configure": "node scripts/configure-admin.js",
-    "media:cleanup": "node scripts/cleanup-media.js"
+    "media:cleanup": "node scripts/cleanup-media.js",
+    "production:cleanup": "node scripts/production-cleanup.js",
+    "production:backup": "node scripts/production-backup.js"
   },
   "keywords": [],
   "author": "",

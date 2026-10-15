@@ -5,6 +5,9 @@ const { AdminRepository } = require('../repositories/admin-repository');
 const { AdminService } = require('../services/admin-service');
 const { AdminAuth } = require('../services/admin-auth');
 function adminRoutes(db, config, media) {
+  config = { ...config };
+  const credentials = new (require('../repositories/credential-repository').CredentialRepository)(db);
+  if (config.enabled) config.passwordHash = credentials.hash(config.user, config.passwordHash);
   const router = Router();
   const auth = new AdminAuth(config);
   const repository = new AdminRepository(db);
@@ -25,9 +28,10 @@ function adminRoutes(db, config, media) {
   router.post('/login', async (req,res) => {
     const { username, password } = req.body || {};
     if (typeof username !== 'string' || username.length > 120 || typeof password !== 'string' || password.length > 256) return res.status(400).json({ error: 'Credenciais inválidas' });
+    const revision = config.passwordHash;
     const result = await auth.login(req.ip, username, password);
     if (result === 'limited') return res.status(429).set('Retry-After','900').json({ error: 'Muitas tentativas. Aguarde 15 minutos.' });
-    if (!result) return res.status(401).json({ error: 'Credenciais inválidas' });
+    if (!result || revision !== config.passwordHash) return res.status(401).json({ error: 'Credenciais inválidas' });
     auth.invalidate(req.adminToken);
     const session = auth.create();
     res.cookie(cookieName,session.token,{ ...cookieOptions, maxAge: config.sessionMs });
@@ -40,6 +44,26 @@ function adminRoutes(db, config, media) {
   });
   router.get('/session', (req,res) => res.json({ authenticated: true, csrfToken: req.adminSession.csrf, expiresAt: req.adminSession.expires }));
   router.post('/logout', (req,res) => { auth.invalidate(req.adminToken); res.clearCookie(cookieName,cookieOptions); res.json({ success: true }); });
+  let changingPassword = false;
+  router.post('/password', async (req,res) => {
+    const { currentPassword, newPassword, confirmation } = req.body || {};
+    if (typeof currentPassword !== 'string' || currentPassword.length > 256 || typeof newPassword !== 'string' || newPassword.length < 15 || newPassword.length > 256) return res.status(400).json({ error: 'Use uma nova senha entre 15 e 256 caracteres.' });
+    if (newPassword !== confirmation) return res.status(400).json({ error: 'A confirmação da nova senha não coincide.' });
+    if (changingPassword) return res.status(429).json({ error: 'Aguarde a alteração em andamento.' });
+    changingPassword = true;
+    try {
+      const result = await auth.login(req.ip, config.user, currentPassword);
+      if (result === 'limited') return res.status(429).set('Retry-After','900').json({ error: 'Muitas tentativas. Aguarde 15 minutos.' });
+      if (!result) return res.status(400).json({ error: 'A senha atual não está correta.' });
+      const hash = await require('../services/password').hashPassword(newPassword);
+      if (!auth.session(req.adminToken)) return res.status(401).json({ error: 'Sessão ausente ou expirada' });
+      credentials.save(config.user, hash);
+      config.passwordHash = hash;
+      auth.invalidateAll();
+      res.clearCookie(cookieName,cookieOptions);
+      res.json({ success: true });
+    } finally { changingPassword = false; }
+  });
   let uploadsInFlight = 0;
   router.post('/images', (req,res,next) => {
     // A exceção ao formato JSON existe somente aqui, após sessão, origem e CSRF.

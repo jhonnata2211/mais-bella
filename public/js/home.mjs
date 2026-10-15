@@ -1,3 +1,4 @@
+import { emptyCollectionMessage } from './commerce.mjs';
 import { products } from './data/products.mjs';
 import { queryProducts } from './catalog.mjs';
 import { renderProductGrid } from './products.mjs';
@@ -30,6 +31,7 @@ export function initHome() {
     renderProductGrid(document.querySelector('#new-products'), showEverything ? visible : visible.slice(0, 4), store.favorites);
     renderProductGrid(document.querySelector('#best-products'), queryProducts(products, { bestOnly: true }).slice(0, 4), store.favorites);
     document.querySelector('#empty-state').hidden = visible.length > 0;
+    document.querySelector('#empty-state').textContent = emptyCollectionMessage(products, 'Nenhuma peça encontrada. Explore todas as peças ou tente outra busca.');
     const status = document.querySelector('#filter-status');
     const labels = [filters.category, filters.promotionsOnly && 'Promoções', filters.search && `Busca: “${filters.search}”`, filters.favoritesOnly && 'Seus favoritos'].filter(Boolean);
     status.hidden = !labels.length;

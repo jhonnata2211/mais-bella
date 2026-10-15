@@ -6,6 +6,8 @@ const field = (form, name) => form.elements.namedItem(name);
 const productForm = $('#product-form');
 const categoryForm = $('#category-form');
 const categoryDialog = $('#category-dialog');
+const passwordDialog = $('#password-dialog');
+const passwordForm = $('#password-form');
 const confirmDialog = $('#confirm-dialog');
 const newId = () => [...crypto.getRandomValues(new Uint8Array(16))].map(n => n.toString(16).padStart(2, '0')).join('');
 const entries = form => [...new FormData(form).entries()];
@@ -36,7 +38,10 @@ function feedback(message = '', error = false, focus = true) {
   if (message && focus) node.focus();
 }
 function report(error, focus = true) {
-  if (categoryDialog.open) {
+  if (passwordDialog.open) {
+    $('#password-feedback').textContent = error.message;
+    if (focus) $('#password-feedback').focus();
+  } else if (categoryDialog.open) {
     $('#category-feedback').textContent = error.message;
     if (focus) $('#category-feedback').focus();
   } else feedback(error.message, true, focus);
@@ -47,7 +52,7 @@ function setBusy(value, label = '') {
   $('#loading').hidden = !value;
   if (value) $('#loading-text').textContent = label;
   $('#workspace').inert = value; $('#admin-nav').inert = value;
-  $('#login').inert = value; categoryForm.inert = value;
+  $('#login').inert = value; categoryForm.inert = value; passwordForm.inert = value;
   $('#login-submit').disabled = value; $('#logout').disabled = value;
   for (const [form, text] of [[productForm, 'Salvar produto'], [categoryForm, 'Salvar categoria']]) {
     form.setAttribute('aria-busy', String(value));
@@ -106,6 +111,8 @@ function showLogin(expired = false) {
   const keepDraft = expired && anyDirty();
   resumeView = keepDraft ? currentView : null;
   resumeCategory = keepDraft && categoryDialog.open && categoryDirty();
+  if (passwordDialog.open) passwordDialog.close();
+  passwordForm.reset();
   if (confirmDialog.open) confirmDialog.close('cancel');
   if (categoryDialog.open) categoryDialog.close();
   csrf = ''; epoch++; products = []; categories = [];
@@ -456,3 +463,22 @@ setBusy(true, 'Conferindo seu acesso…');
 try { const data = await api('/session'); await enterWorkspace(data); }
 catch (error) { const initial = error.message.startsWith('Sua sessão expirou'); showLogin(); feedback(initial ? '' : error.message, !initial, false); }
 finally { setBusy(false); }
+
+$('#change-password').addEventListener('click', () => {
+  if (busy || !csrf) return;
+  passwordForm.reset(); $('#password-feedback').textContent = ''; passwordDialog.showModal();
+});
+passwordDialog.addEventListener('close', () => passwordForm.reset());
+$('#cancel-password').addEventListener('click', () => passwordDialog.close());
+passwordDialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
+passwordForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!passwordForm.reportValidity()) return;
+  await task('Alterando sua senha…', async () => {
+    try { await api('/password', 'POST', Object.fromEntries(new FormData(passwordForm))); }
+    finally { passwordForm.reset(); }
+    passwordDialog.close(); showLogin();
+    feedback('Senha alterada com segurança. Entre novamente com sua nova senha.'); $('#password').focus();
+  });
+});
+window.addEventListener('pagehide', () => passwordForm.reset());

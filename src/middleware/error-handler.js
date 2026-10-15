@@ -9,6 +9,8 @@ function errorHandler(error, req, res, next) {
   if (error.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON inválido' });
   if (error instanceof URIError) return res.status(400).json({ error: 'Parâmetro inválido' });
   // Nunca serializar error, stack, consultas, caminhos ou o corpo da requisição.
+  const kind = error.code === 'ERR_SQLITE_ERROR' ? 'database' : error.code === 'ENOSPC' ? 'storage_full' : 'internal';
+  console.error(JSON.stringify({ event: 'request_failed', method: req.method, operation: typeof req.route?.path === 'string' ? req.route.path : 'unknown', kind, status: 500 }));
   res.status(500).json({ error: 'Não foi possível concluir a solicitação' });
 }
 module.exports = { errorHandler };

@@ -8,6 +8,8 @@ function loadEnvironment() {
 }
 
 function getConfig(env = process.env) {
+  const environment = env.NODE_ENV || 'development';
+  if (!['development', 'test', 'production'].includes(environment)) throw new Error('NODE_ENV inválido.');
   const port = Number(env.PORT || 3000);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT inválida.');
   const databasePath = path.resolve(root, env.DB_PATH || 'data/maisbella.sqlite');
@@ -19,7 +21,7 @@ function getConfig(env = process.env) {
   if (uploadsPath !== path.join(root, 'data', 'uploads') && (uploadsPath === root || uploadsPath.startsWith(root + path.sep))) throw new Error('Dentro do projeto, UPLOAD_DIR deve ser data/uploads. Use outro caminho somente fora do repositório.');
   if (databasePath === uploadsPath || databasePath.startsWith(uploadsPath + path.sep)) throw new Error('O banco deve ficar fora de UPLOAD_DIR.');
   const { validHash } = require('./services/password');
-  const production = env.NODE_ENV === 'production';
+  const production = environment === 'production';
   const configured = Boolean(env.ADMIN_USER || env.ADMIN_PASSWORD_HASH || env.SESSION_SECRET);
   if ((configured || production) && (!env.ADMIN_USER || env.ADMIN_USER.length > 120 || !validHash(env.ADMIN_PASSWORD_HASH) || !/^[a-f0-9]{64,}$/.test(env.SESSION_SECRET || ''))) throw new Error('Configure ADMIN_USER, ADMIN_PASSWORD_HASH e SESSION_SECRET seguros.');
   let origin;
@@ -28,6 +30,6 @@ function getConfig(env = process.env) {
   if (production && (!env.APP_ORIGIN || !origin.startsWith('https://') || env.SEED_DEMO === 'true')) throw new Error('Produção exige HTTPS e seed desativado.');
   if (env.TRUST_PROXY && env.TRUST_PROXY !== 'loopback') throw new Error('TRUST_PROXY deve ser loopback.');
   const admin = { enabled: configured, user: env.ADMIN_USER, passwordHash: env.ADMIN_PASSWORD_HASH, secret: env.SESSION_SECRET, origin, production, trustProxy: env.TRUST_PROXY === 'loopback', sessionMs: 30 * 60 * 1000 };
-  return { port, databasePath, uploadsPath, admin, seedDemo: env.SEED_DEMO === undefined ? env.NODE_ENV !== 'production' : env.SEED_DEMO === 'true' };
+  return { port, databasePath, uploadsPath, environment, admin, seedDemo: env.SEED_DEMO === 'true' };
 }
 module.exports = { root, loadEnvironment, getConfig };

@@ -1,3 +1,4 @@
+import { emptyCollectionMessage } from './commerce.mjs';
 import { products, categories } from './data/products.mjs';
 import { catalogOptions, queryProducts } from './catalog.mjs';
 import { escapeHTML, productURL, renderProductGrid } from './products.mjs';
@@ -51,6 +52,7 @@ export function initCatalog() {
     const total = products.filter(product => product.active).length;
     document.querySelector('#product-count').textContent = `${result.length} de ${total} produtos`;
     document.querySelector('#catalog-empty').hidden = result.length > 0 || !validRange;
+    document.querySelector('#catalog-empty').textContent = emptyCollectionMessage(products, 'Nenhuma peça encontrada. Ajuste a busca ou limpe os filtros para explorar a coleção.');
     const active = [favoritesOnly && 'Seus favoritos', promotionsOnly && 'Promoções', newOnly && 'Novidades'].filter(Boolean);
     document.querySelector('#catalog-mode').textContent = active.join(' · ');
     document.querySelector('#catalog-mode').hidden = !active.length;
