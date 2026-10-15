@@ -14,6 +14,8 @@ Loja de moda feminina com identidade de boutique: blush, rosa queimado, nude e o
 
 **MAISBELLA-006 — implementação para revisão:** autenticação administrativa, sessões, operações protegidas e painel responsivo em `/admin.html`. Consulte a configuração e as limitações abaixo. Nenhum administrador é criado automaticamente.
 
+**MAISBELLA-007 — painel mobile para validação:** navegação por áreas, resumo do catálogo, filtros e edição em seções, preservando a segurança da etapa 006.
+
 ## Instalar e executar
 
 Pré-requisito: **Node.js 24.15 ou superior com `node:sqlite` disponível** e npm. Validado neste Android/Termux com Node.js 26.3.1 e SQLite 3.53.2. Use um navegador moderno com suporte a módulos JavaScript e ao elemento nativo `<dialog>`.
@@ -384,7 +386,7 @@ Produtos usam `id`, `slug`, `name`, `shortDescription`, `description`, `category
 
 Valores monetários recebidos pelo servidor são **centavos inteiros**, até 2.147.483.647; a promoção deve ser inferior ao preço base. A UI converte reais com até duas casas decimais para centavos. As validações já existentes de imagens, unicidade e integridade foram preservadas. Alterações de produto/imagens/variações e categorias usam transações. Conflitos retornam 400 sem detalhes SQL, e erros inesperados retornam 500 genérico. `createdAt` e a marca `demo` são preservados na edição; produtos novos são operacionais (`demo=false`). Não transforme os produtos demonstrativos em reais: crie cadastros com informações verificadas.
 
-A edição de produto substitui as listas de filhos atomicamente e mantém seu ID e data de criação; a interface preserva a galeria existente. Não há upload: para novos produtos, publique previamente uma imagem autorizada em `public/assets` e informe seu caminho local, por exemplo `/assets/foto.webp`. O validador restringe referências locais. Não há exclusão física; desative produtos/categorias ou remova variações na edição. Categoria inativa oculta seus produtos da API pública. Edições simultâneas usam a última gravação; não há controle de versões nesta etapa.
+A edição de produto substitui as listas de filhos atomicamente e mantém seu ID e data de criação; a interface preserva a galeria existente. Não há upload: para usar uma fotografia local em novos produtos, publique previamente uma imagem autorizada em `public/assets` e informe seu caminho, por exemplo `/assets/foto.webp`. A interface da etapa 007 também permite cadastrar com ilustração provisória, sem informar caminho de foto. O validador restringe referências locais. Não há exclusão física; desative produtos/categorias ou remova variações na edição. Categoria inativa oculta seus produtos da API pública. Edições simultâneas usam a última gravação; não há controle de versões nesta etapa.
 
 ### Produção e validação
 
@@ -403,3 +405,62 @@ São **84 testes**, incluindo os 70 anteriores. Os novos usam hashes gerados dur
 Antes de liberar a loja, faça a validação visual e de acessibilidade em navegador real: `/admin.html` em 320, 375, 768 e 1440 px; teclado/labels/foco; login inválido/válido; criação de categoria; cadastro com fotografia real; edição de cor/tamanho/estoque; desativação; atualização da vitrine; logout e expiração em outra aba. Os testes automatizados não substituem essa inspeção visual. O ambiente desta execução não disponibiliza navegador automatizado.
 
 Prepare banco vazio com `SEED_DEMO=false` para dados reais, confira cada informação comercial e fotografia, remova referências demonstrativas da apresentação comercial, configure HTTPS/proxy, proteja `.env` e SQLite com permissões do sistema e valide backup/restauração com a aplicação parada. Adote monitoramento e proteção de login no proxy antes de expor o painel à internet. Sacola/WhatsApp continuam sem reserva, baixa ou confirmação de pedido no servidor; o atendimento deve conferir disponibilidade e valores. Nenhum teste envia mensagem ao WhatsApp.
+
+## Painel mobile — MAISBELLA-007
+
+O painel continua em **`/admin.html`**, com a autenticação e as rotas da etapa 006. Esta etapa altera somente a interface administrativa, acrescenta lógica de apresentação testável e não modifica backend, banco, migrations, credenciais ou páginas públicas. Não há nova dependência.
+
+Após entrar, **Início** mostra seis contagens obtidas da API administrativa: produtos cadastrados, ativos, inativos, variações esgotadas, variações com estoque baixo e categorias. Os produtos demonstrativos são identificados separadamente e continuam incluídos nos totais; nenhuma informação financeira ou de pedidos é estimada. Ativo/inativo considera o status do produto. Uma categoria inativa ainda impede sua exibição pública, como antes.
+
+A navegação tem quatro áreas, acessíveis por botões com indicação da área atual: **Início, Produtos, Estoque e Categorias**. No celular, fica na parte inferior, respeitando a área segura do dispositivo. No desktop, aparece abaixo do cabeçalho. O botão **Sair** fica no cabeçalho. A edição abre uma tela própria; “Voltar” ou “Cancelar edição” retorna à origem, preservando os filtros da listagem.
+
+### Produtos e cadastro
+
+A lista mostra nome, categoria, preço original/promoção, status, unidades em variações ativas e quantas estão esgotadas/com estoque baixo. Busca por nome ignora caixa e acentos e aceita várias palavras; combina com filtros por status e categoria. Há estados vazios e opção de limpar filtros.
+
+“Editar” consulta o produto completo na API antes de abrir o formulário. “Ativar/Desativar” pede confirmação, consulta a versão atual e envia o mesmo PUT administrativo existente, preservando preços, imagens e todas as variações, inclusive inativas. Não cria endpoint novo. A desativação preserva o cadastro e o estoque.
+
+O formulário é dividido em quatro seções recolhíveis: **Informações, Preços, Vitrine, Variações e estoque**. Ao detectar um campo obrigatório inválido, a seção correspondente abre para permitir o foco. O endereço (slug) é sugerido a partir do nome em cadastros novos; pode ser personalizado. Renomear um cadastro existente não muda seu endereço automaticamente.
+
+O formulário mostra “Alterações não salvas”. Trocar de área, cancelar, abrir outra edição ou sair pede confirmação se houver mudanças. Fechar/recarregar a página usa a confirmação nativa do navegador quando disponível. Remover uma variação também pede confirmação; a remoção só persiste ao salvar. Erros de validação ou conexão mantêm os campos preenchidos. Durante operações, controles ficam temporariamente indisponíveis para evitar envios duplicados, com indicação de carregamento.
+
+Se a sessão expirar com edição pendente, o painel solicita login e mantém o rascunho **somente na memória da página**, para continuar após autenticar. Não grava dados administrativos ou tokens em localStorage. Fechar/recarregar a página perde esse rascunho após a confirmação disponível no navegador; ele não é backup nem persistência offline. O logout confirmado limpa os dados do painel. As sessões continuam com prazo absoluto, sem renovação automática.
+
+**Fotos:** o cadastro novo pode ser salvo sem conhecer caminhos de arquivos: usa uma ilustração explicitamente provisória, sem fingir que é fotografia do produto. Se a equipe já tiver preparado uma foto local, o campo opcional em Vitrine mantém a possibilidade de informá-la. Na edição, a galeria existente é preservada. Nenhum produto é criado automaticamente; os dados comerciais devem ser preenchidos pela proprietária. Upload e gerenciamento completo de fotos permanecem para outra etapa.
+
+### Estoque e categorias
+
+**Estoque baixo significa de 1 a 3 unidades por variação.** Zero é **Esgotado**; a partir de 4 é **Disponível**. O estoque é o mesmo SQLite já existente. Contagens e resumos consideram somente variações ativas, inclusive as de produtos inativos. A visualização de estoque permite incluir explicitamente as variações inativas; elas recebem identificação própria e não entram nos indicadores iniciais.
+
+A tela mostra produto, cor, tamanho e quantidade, com busca e filtro por situação. “Editar estoque” abre diretamente a seção de variações do produto, onde a quantidade pode ser alterada e salva pela API protegida. Não há edição rápida paralela, nova regra de estoque, reserva de venda ou baixa automática por WhatsApp. O servidor continua validando os valores finais.
+
+**Categorias** mostra status e quantidade de produtos vinculados, permite criar/editar em diálogo e ativar/desativar com confirmação. O aviso informa o efeito de ocultar produtos ao desativar uma categoria. Não há exclusão destrutiva. Os endereços de categorias novas também são sugeridos automaticamente; ordem e endereço ficam numa seção secundária.
+
+### Verificação e validação manual no Termux
+
+```sh
+npm test
+node --check server.js
+find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+git diff --check
+git status --short
+npm start
+```
+
+Use as credenciais privadas já configuradas na etapa 006. Não recrie `.env` nem credenciais existentes. Para outro dispositivo na rede local, mantenha `APP_ORIGIN` consistente com o endereço exato usado, conforme a configuração da etapa anterior. Em produção, continuam obrigatórios HTTPS e as demais proteções documentadas.
+
+A suíte passa a ter **97 testes**: os 84 anteriores permanecem, mais 13 de apresentação administrativa, cobrindo contagens, limites do estoque baixo, filtros combinados, variações inativas, ausência de mutações, sugestões de slug, conversão monetária, contratos de cadastro/edição com os validadores reais, preservação de galeria/estoque na troca de status e detecção de alterações. Os testes anteriores continuam verificando login/logout, sessões, CSRF, rate limiting, autorização, persistência SQLite, API pública, sacola, favoritos e WhatsApp.
+
+Validação manual pendente em navegador real, prioritariamente **360, 390 e 412 px**, além do desktop (por exemplo, 1280 px):
+
+1. Entre com senha incorreta/correta, confira o carregamento e os indicadores; compare com os cadastros existentes, inclusive demonstrativos.
+2. Navegue pelas quatro áreas. Confira navegação inferior no celular, ações de toque, foco visível com Tab/Shift+Tab e ausência de rolagem horizontal. No console do navegador, confira `document.documentElement.scrollWidth <= window.innerWidth`.
+3. Em Produtos, combine nome, status e categoria; teste busca sem resultado e limpar filtros. Confira preço promocional e aviso de categoria inativa.
+4. Abra uma edição, altere nome/quantidade e tente sair: cancele o descarte e confira os valores; depois confirme o descarte. Tente fechar/recarregar com mudanças e confira a proteção nativa.
+5. Em banco separado de desenvolvimento, cadastre categoria e produto sem fotografia; confira a ilustração provisória, os campos obrigatórios em seções fechadas e a mensagem de sucesso. Edite, recarregue e confira persistência. Não faça experimentos no catálogo operacional.
+6. Em Estoque, confira quantidades 0, 1, 3 e 4, filtre situações e inclua inativas. “Editar estoque” deve abrir a seção correta. Salve e confira a listagem.
+7. Abra categorias pelo teclado; teste cancelar, Escape, mudanças pendentes, salvar e ativar/desativar. Confira avisos e preservação dos produtos.
+8. Confira logout; em outra aba, teste sessão encerrada. Para expiração natural, mantenha uma edição pendente por 30 minutos: faça login novamente e confira a retomada sem gravação automática.
+9. Teste falha de rede ao salvar (campos devem permanecer) e navegue pela vitrine, produto, favoritos, sacola e mensagem de WhatsApp. Nenhum teste automatizado envia mensagens.
+
+Este ambiente não oferece navegador automatizado; os testes de lógica não comprovam layout, teclado virtual ou comportamento de leitores de tela. A conferência acima deve ocorrer antes de aprovar a etapa. Permanecem as limitações da etapa 006: processo único com sessões/limites em memória, última gravação em edições concorrentes, sem MFA, upload ou auditoria persistente. Não foram acrescentados pagamentos, checkout, pedidos, ERP ou integrações externas.

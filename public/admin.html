@@ -1,16 +1,97 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administração | Mais Bella</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/admin.css"><script type="module" src="/js/admin.mjs"></script></head>
-<body class="admin-body"><a href="#main" class="skip-link">Pular para o conteúdo</a><header class="admin-header"><a href="/">Mais Bella · Vitrine</a><strong>Administração do catálogo</strong><button id="logout" hidden>Sair</button></header>
-<main id="main" class="admin-main"><h1>Catálogo da loja</h1><p id="feedback" role="status" aria-live="polite" tabindex="-1"></p>
-<section id="login-panel"><h2>Acesso administrativo</h2><form id="login"><label>Usuário<input name="username" autocomplete="username" maxlength="120" required></label><label>Senha<input name="password" type="password" autocomplete="current-password" maxlength="256" required></label><button>Entrar</button></form></section>
-<div id="workspace" hidden><section><h2>Produtos</h2><button id="new-product">Cadastrar produto</button><ul id="product-list" class="admin-list"></ul></section>
-<section><h2 id="editor-title">Cadastrar produto</h2><form id="product-form">
-<label>Nome<input name="name" maxlength="160" required></label><label>Slug (único, letras minúsculas e hífens)<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required></label>
-<label>Descrição curta<textarea name="shortDescription" maxlength="500" required></textarea></label><label>Descrição<textarea name="description" maxlength="10000" required></textarea></label>
-<label>Categoria<select name="categoryId" required></select></label><label>Preço (R$)<input name="price" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" required></label><label>Preço promocional (R$, opcional)<input name="promotion" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?"></label>
-<label><input name="active" type="checkbox"> Produto ativo</label><label><input name="featured" type="checkbox"> Destaque</label><label><input name="isNew" type="checkbox"> Novidade</label><label><input name="bestSeller" type="checkbox"> Mais vendido</label>
-<p id="demo-note" hidden>Produto demonstrativo: esta identificação será preservada.</p>
-<label>Imagem local (novo produto; edição preserva a galeria)<input name="image" placeholder="/assets/foto.webp"></label><p>Adicione previamente uma fotografia autorizada em public/assets. Esta etapa não oferece upload.</p>
-<fieldset><legend>Variações de cor, tamanho e estoque</legend><div id="variations"></div><button type="button" id="add-variation">Adicionar variação</button></fieldset><button>Salvar produto</button><button type="button" id="cancel-product">Cancelar edição</button></form></section>
-<section><h2>Categorias</h2><ul id="category-list" class="admin-list"></ul><form id="category-form"><label>Nome<input name="name" maxlength="120" required></label><label>Slug<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required></label><label>Ordem<input name="sortOrder" type="number" min="0" max="2147483647" step="1" value="0" required></label><label><input name="active" type="checkbox" checked> Categoria ativa</label><button>Salvar categoria</button><button type="button" id="cancel-category">Nova categoria</button></form></section></div></main></body></html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fdfbf8">
+  <title>Painel da loja | Mais Bella</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <script type="module" src="/js/admin.mjs"></script>
+</head>
+<body>
+  <a href="#main" class="skip-link">Pular para o conteúdo</a>
+  <header class="admin-header">
+    <div class="header-inner">
+      <a href="/" class="brand" aria-label="Mais Bella, visitar a vitrine"><span class="brand-mark" aria-hidden="true">mb</span><span><span class="brand-name">Mais Bella</span><span class="brand-caption">PAINEL DA LOJA</span></span></a>
+      <button type="button" id="logout" class="quiet-button" hidden>Sair <span aria-hidden="true">↗</span></button>
+    </div>
+  </header>
+  <nav id="admin-nav" class="admin-nav" aria-label="Áreas do painel" hidden>
+    <div class="nav-inner">
+      <button type="button" data-go="home" aria-controls="view-home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z M9 20v-7h6v7"/></svg><span>Início</span></button>
+      <button type="button" data-go="products" aria-controls="view-products"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4-5 4 3 4 2-1v9h8v-9l2 1 3-4-5-4c0 4-8 4-8 0Z"/></svg><span>Produtos</span></button>
+      <button type="button" data-go="stock" aria-controls="view-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v13H3Z M3 7l9 4 9-4 M12 11v9 M8 5l9 4"/></svg><span>Estoque</span></button>
+      <button type="button" data-go="categories" aria-controls="view-categories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Categorias</span></button>
+    </div>
+  </nav>
+  <main id="main" class="admin-main" tabindex="-1" aria-busy="true">
+    <div id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
+    <p id="loading" class="loading" role="status"><span class="spinner" aria-hidden="true"></span><span id="loading-text">Conferindo seu acesso…</span></p>
+    <section id="login-panel" class="login-panel" hidden aria-labelledby="login-title">
+      <span class="eyebrow">BEM-VINDA À SUA LOJA</span>
+      <h1 id="login-title">Um cuidado a mais<br>com cada detalhe.</h1>
+      <p class="muted">Entre para organizar suas peças e cuidar da coleção.</p>
+      <form id="login">
+        <label for="username">Usuário</label><input id="username" name="username" autocomplete="username" maxlength="120" required autocapitalize="none" spellcheck="false">
+        <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        <button id="login-submit" class="primary-button" type="submit">Entrar no painel <span aria-hidden="true">→</span></button>
+      </form>
+      <a href="/" class="text-link">Voltar à vitrine</a>
+    </section>
+    <div id="workspace" hidden>
+      <section id="view-home" data-view="home" aria-labelledby="home-title">
+        <div class="page-heading"><div><span class="eyebrow">SEU DIA NA MAIS BELLA</span><h1 id="home-title" tabindex="-1">Vamos cuidar da coleção?</h1><p class="muted">Uma visão simples do que está na sua loja.</p></div><button type="button" data-new-product class="primary-button">+ Novo produto</button></div>
+        <div id="metrics" class="metrics"></div>
+        <p class="caption">Produtos ativos e inativos seguem o status do cadastro. Estoque considera variações ativas, mesmo em produtos fora da vitrine. Categorias incluem ativas e inativas.</p>
+        <p id="demo-summary" class="notice" hidden></p>
+        <section class="home-shortcuts" aria-labelledby="shortcuts-title"><h2 id="shortcuts-title">O que você quer fazer?</h2><div class="shortcut-grid">
+          <button type="button" data-go="products" class="shortcut"><span aria-hidden="true">01</span><strong>Produtos</strong><small>Encontre e edite suas peças</small><span aria-hidden="true">↗</span></button>
+          <button type="button" data-go="stock" class="shortcut"><span aria-hidden="true">02</span><strong>Estoque</strong><small>Confira cores e tamanhos</small><span aria-hidden="true">↗</span></button>
+          <button type="button" data-go="categories" class="shortcut"><span aria-hidden="true">03</span><strong>Categorias</strong><small>Organize a coleção</small><span aria-hidden="true">↗</span></button>
+        </div></section>
+      </section>
+      <section id="view-products" data-view="products" aria-labelledby="products-title" hidden>
+        <div class="page-heading"><div><span class="eyebrow">SUA COLEÇÃO</span><h1 id="products-title" tabindex="-1">Produtos</h1><p class="muted">Cada peça, fácil de encontrar.</p></div><button type="button" data-new-product class="primary-button">+ Novo produto</button></div>
+        <div class="filter-panel"><label class="search-field" for="product-search">Buscar por nome<input id="product-search" type="search" placeholder="Qual peça você procura?"></label><div class="filter-pair"><label for="product-status">Status<select id="product-status"><option value="all">Todos os produtos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label><label for="product-category">Categoria<select id="product-category"><option value="">Todas as categorias</option></select></label></div><button type="button" id="clear-products" class="text-button">Limpar filtros</button></div>
+        <p id="product-count" class="list-summary" role="status"></p><ul id="product-list" class="item-list"></ul><div id="products-empty" class="empty-state" hidden></div>
+      </section>
+      <section id="view-stock" data-view="stock" aria-labelledby="stock-title" hidden>
+        <div class="page-heading"><div><span class="eyebrow">CADA COR, CADA TAMANHO</span><h1 id="stock-title" tabindex="-1">Estoque</h1><p class="muted">Saiba o que precisa de atenção.</p></div></div>
+        <div class="filter-panel"><label for="stock-search">Buscar peça, cor ou tamanho<input id="stock-search" type="search" placeholder="Ex.: vestido, nude ou M"></label><label for="stock-status">Situação<select id="stock-status"><option value="all">Todas as situações</option><option value="empty">Esgotado · 0 unidades</option><option value="low">Estoque baixo · 1 a 3 unidades</option><option value="available">Disponível · 4 ou mais</option></select></label><label class="check-label"><input id="stock-inactive" type="checkbox"> Incluir variações inativas</label></div>
+        <p class="caption">Estoque baixo: de 1 a 3 unidades por variação. Para alterar a quantidade, toque em “Editar estoque”.</p><p id="stock-count" class="list-summary" role="status"></p><div id="stock-list" class="stock-list"></div><div id="stock-empty" class="empty-state" hidden></div>
+      </section>
+      <section id="view-categories" data-view="categories" aria-labelledby="categories-title" hidden>
+        <div class="page-heading"><div><span class="eyebrow">TUDO NO SEU LUGAR</span><h1 id="categories-title" tabindex="-1">Categorias</h1><p class="muted">Organize suas peças para facilitar a escolha.</p></div><button type="button" id="new-category" class="primary-button">+ Nova categoria</button></div>
+        <p class="notice">Desativar uma categoria também oculta seus produtos da vitrine. Os cadastros e o estoque são preservados.</p><p id="category-count" class="list-summary" role="status"></p><ul id="category-list" class="item-list"></ul><div id="categories-empty" class="empty-state" hidden></div>
+      </section>
+      <section id="view-editor" data-view="editor" aria-labelledby="editor-title" hidden>
+        <button type="button" id="back-products" class="text-button">← Voltar</button>
+        <div class="page-heading"><div><span class="eyebrow">OS DETALHES DA PEÇA</span><h1 id="editor-title" tabindex="-1">Novo produto</h1><p class="muted">Preencha por partes. Salve quando estiver tudo certo.</p></div><span id="draft-indicator" class="badge badge-low" hidden>Alterações não salvas</span></div>
+        <p id="demo-note" class="notice" hidden>Este produto é demonstrativo. Essa identificação será mantida.</p>
+        <form id="product-form">
+          <details class="form-section" id="section-info" open><summary><span class="section-number">01</span><span>Informações<small>Nome, descrições e categoria</small></span></summary><div class="section-content">
+            <label for="product-name">Nome da peça<input id="product-name" name="name" maxlength="160" required></label>
+            <label for="categoryId">Categoria<select id="categoryId" name="categoryId" required></select></label><p id="no-categories" class="notice" hidden>Cadastre uma categoria em “Categorias” antes de salvar seu produto.</p>
+            <label for="shortDescription">Descrição curta<textarea id="shortDescription" name="shortDescription" maxlength="500" rows="2" required></textarea></label><label for="description">Descrição completa<textarea id="description" name="description" maxlength="10000" rows="4" required></textarea></label>
+            <details class="advanced"><summary>Endereço da peça na loja</summary><label for="product-slug">Endereço (slug)<input id="product-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required aria-describedby="slug-help"></label><p id="slug-help" class="caption">Preenchido a partir do nome ao cadastrar. Use letras minúsculas, números e hífens. Cada peça precisa de um endereço diferente.</p></details>
+          </div></details>
+          <details class="form-section" id="section-prices"><summary><span class="section-number">02</span><span>Preços<small>Valor da peça e promoção</small></span></summary><div class="section-content field-pair"><label for="price">Preço (R$)<input id="price" name="price" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0,00" required></label><label for="promotion">Preço promocional (opcional)<input id="promotion" name="promotion" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0,00"></label><p class="caption span-all">A promoção precisa ser menor que o preço original.</p></div></details>
+          <details class="form-section" id="section-display"><summary><span class="section-number">03</span><span>Vitrine<small>Como a peça aparece na loja</small></span></summary><div class="section-content">
+            <label class="check-label"><input name="active" type="checkbox" checked><span>Produto ativo<small>Disponível para aparecer na vitrine</small></span></label><label class="check-label"><input name="featured" type="checkbox"><span>Destaque<small>Participa da seleção de destaques</small></span></label><label class="check-label"><input name="isNew" type="checkbox"><span>Novidade</span></label><label class="check-label"><input name="bestSeller" type="checkbox"><span>Mais vendido</span></label>
+            <p id="photo-note" class="caption">Sem fotografia por enquanto? A peça usará uma ilustração provisória. Fotos reais serão tratadas em uma próxima etapa.</p>
+            <details id="photo-options" class="advanced"><summary>Usar uma foto já preparada (opcional)</summary><label for="image">Caminho da foto<input id="image" name="image" placeholder="/assets/foto.webp" aria-describedby="image-help"></label><p id="image-help" class="caption">Somente para fotos já disponibilizadas pela equipe no site. Não é necessário preencher para cadastrar a peça.</p></details>
+          </div></details>
+          <details class="form-section" id="section-variations"><summary><span class="section-number">04</span><span>Variações e estoque<small>Cores, tamanhos e quantidades</small></span></summary><div class="section-content"><p class="caption">Adicione uma combinação por cor e tamanho. Quantidade zero indica esgotado.</p><div id="variations" class="variation-list"></div><button type="button" id="add-variation" class="secondary-button">+ Adicionar variação</button></div></details>
+          <div class="editor-actions"><button type="submit" class="primary-button">Salvar produto</button><button type="button" id="cancel-product" class="quiet-button">Cancelar edição</button></div>
+        </form>
+      </section>
+    </div>
+    <noscript><p>Ative o JavaScript para usar o painel com segurança.</p></noscript>
+  </main>
+  <dialog id="category-dialog" aria-labelledby="category-editor-title" class="editor-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">ORGANIZE A COLEÇÃO</span><h2 id="category-editor-title">Nova categoria</h2></div><button type="button" id="close-category" class="quiet-button" aria-label="Fechar categoria">✕</button></div>
+    <form id="category-form"><label for="category-name">Nome<input id="category-name" name="name" maxlength="120" required></label><details class="advanced"><summary>Endereço e ordem de exibição</summary><div class="section-content"><label for="category-slug">Endereço (slug)<input id="category-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required></label><p class="caption">Preenchido automaticamente para novas categorias. Use letras minúsculas, números e hífens.</p><label for="sortOrder">Ordem na loja<input id="sortOrder" name="sortOrder" type="number" min="0" max="2147483647" step="1" value="0" required></label></div></details><label class="check-label"><input name="active" type="checkbox" checked> Categoria ativa</label><p class="caption">Uma categoria inativa oculta seus produtos da vitrine.</p><p id="category-feedback" role="alert" tabindex="-1"></p><div class="dialog-actions"><button type="submit" class="primary-button">Salvar categoria</button><button type="button" id="cancel-category" class="quiet-button">Cancelar</button></div></form>
+  </dialog>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description" class="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-description"></p><form method="dialog" class="dialog-actions"><button value="cancel" class="secondary-button" autofocus>Voltar</button><button id="confirm-accept" value="accept" class="primary-button">Continuar</button></form></dialog>
+</body>
+</html>
