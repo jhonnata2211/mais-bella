@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { products } from '../public/js/data/products.mjs';
+import { products } from './helpers/catalog-fixture.mjs';
 import { catalogOptions, effectivePrice, normalize, queryProducts } from '../public/js/catalog.mjs';
 import { productCard, productURL } from '../public/js/products.mjs';
 import { FAVORITES_KEY, readFavorites, writeFavorites } from '../public/js/storefront.mjs';

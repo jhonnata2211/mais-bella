@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { storeConfig } from '../public/js/config.mjs';
-import { products } from '../public/js/data/products.mjs';
+import { products } from './helpers/catalog-fixture.mjs';
 import { addItem, cartCount, cartSubtotal, createCartStore, itemKey, updateItemQuantity } from '../public/js/cart.mjs';
 import { generateOrderMessage, isCustomerPhoneValid, isStoreNumberValid, normalizeOrderDetails, prepareWhatsAppOrder, productQuestion, validateOrder, whatsappLink } from '../public/js/whatsapp.mjs';
 import { money } from '../public/js/products.mjs';

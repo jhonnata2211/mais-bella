@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { products } from '../public/js/data/products.mjs';
+import { products } from './helpers/catalog-fixture.mjs';
 import { findProduct, getVariation, validateSelection } from '../public/js/product-model.mjs';
 import { effectivePrice } from '../public/js/catalog.mjs';
 import { CART_KEY, addItem, cartCount, cartSubtotal, createCartStore, itemKey, readCart, removeItem, writeCart } from '../public/js/cart.mjs';

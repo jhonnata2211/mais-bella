@@ -1,4 +1,4 @@
-import { products } from './data/products.mjs';
+import { products, categories } from './data/products.mjs';
 import { catalogOptions, queryProducts } from './catalog.mjs';
 import { escapeHTML, productURL, renderProductGrid } from './products.mjs';
 import { initStorefront } from './storefront.mjs';
@@ -27,7 +27,7 @@ export function initCatalog() {
     }
   });
   const options = catalogOptions(products);
-  for (const [field, values] of [['category', options.categories], ['size', options.sizes], ['color', options.colors]]) {
+  for (const [field, values] of [['category', categories.map(category => category.name)], ['size', options.sizes], ['color', options.colors]]) {
     const select = document.querySelector(`#filter-${field}`);
     select.insertAdjacentHTML('beforeend', values.map(value => `<option value="${escapeHTML(value)}">${escapeHTML(value)}</option>`).join(''));
   }
