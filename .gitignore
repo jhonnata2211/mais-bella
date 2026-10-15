@@ -12,3 +12,7 @@ npm-debug.log*
 *.sqlite3-*
 *.db
 *.db-*
+
+# Fotos recebidas em runtime (inclui temporárias); somente a estrutura é versionada.
+/data/uploads/*
+!/data/uploads/.gitkeep

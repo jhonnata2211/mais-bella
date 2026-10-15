@@ -16,6 +16,8 @@ Loja de moda feminina com identidade de boutique: blush, rosa queimado, nude e o
 
 **MAISBELLA-007 — painel mobile para validação:** navegação por áreas, resumo do catálogo, filtros e edição em seções, preservando a segurança da etapa 006.
 
+**MAISBELLA-008 — fotos para validação:** seleção pela galeria do celular, prévias, principal e remoção, com upload protegido e armazenamento local. Consulte a seção de fotos ao final.
+
 ## Instalar e executar
 
 Pré-requisito: **Node.js 24.15 ou superior com `node:sqlite` disponível** e npm. Validado neste Android/Termux com Node.js 26.3.1 e SQLite 3.53.2. Use um navegador moderno com suporte a módulos JavaScript e ao elemento nativo `<dialog>`.
@@ -315,7 +317,7 @@ Favoritos guardam apenas IDs na chave `maisbella:favorites:v1` do `localStorage`
 
 A página individual usa `/produto.html?slug=slug` e também aceita `?id=id`. O destino fica centralizado em `productURL`. URLs antigas com `/catalogo.html?produto=slug` redirecionam para a nova página pelo JavaScript. Produto inexistente ou inativo mostra “Produto não encontrado” e retorno ao catálogo.
 
-Há SQLite, autenticação e painel administrativo. Ainda não há persistência de pedidos, upload, pagamento, checkout, cálculo de frete ou coleta de e-mails. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
+Há SQLite, autenticação e painel administrativo. Ainda não há persistência de pedidos, pagamento, checkout, cálculo de frete ou coleta de e-mails. Upload de fotos está documentado na etapa 008. WhatsApp utiliza apenas o link público oficial, sem API ou envio automático. JavaScript é necessário para renderizar vitrines, filtros, produto e sacola. O limite de estoque é uma validação local demonstrativa; não existe validação comercial no servidor. Google Fonts é opcional: fontes de fallback mantêm o layout funcional sem conexão; as ilustrações não dependem de imagens externas. A preferência por movimento reduzido é respeitada.
 
 A vitrine não exige credenciais; o painel exige configuração explícita. `.env` e `node_modules` estão ignorados pelo Git.
 
@@ -464,3 +466,88 @@ Validação manual pendente em navegador real, prioritariamente **360, 390 e 412
 9. Teste falha de rede ao salvar (campos devem permanecer) e navegue pela vitrine, produto, favoritos, sacola e mensagem de WhatsApp. Nenhum teste automatizado envia mensagens.
 
 Este ambiente não oferece navegador automatizado; os testes de lógica não comprovam layout, teclado virtual ou comportamento de leitores de tela. A conferência acima deve ocorrer antes de aprovar a etapa. Permanecem as limitações da etapa 006: processo único com sessões/limites em memória, última gravação em edições concorrentes, sem MFA, upload ou auditoria persistente. Não foram acrescentados pagamentos, checkout, pedidos, ERP ou integrações externas.
+
+## Fotos dos produtos — MAISBELLA-008
+
+A seção **Fotos** do cadastro/edição permite selecionar várias imagens da galeria do celular, conferir miniaturas, preencher uma descrição opcional, definir a principal e remover imagens. Não é necessário digitar caminhos. O painel mantém o visual e a navegação da etapa 007. As imagens anteriores, inclusive ilustrações demonstrativas, são preservadas ao adicionar fotos; escolha explicitamente a foto principal desejada. Não há reordenação por arraste: a ordem segue a galeria, com a principal apresentada primeiro na vitrine/página do produto.
+
+As mudanças nas fotos participam da confirmação de alterações não salvas. Selecionar ou remover uma foto altera somente o rascunho até **Salvar produto**. A seleção gera prévias locais `blob:`, sem enviar os arquivos de imediato. Ao salvar, o painel envia uma foto de cada vez, mostra “Enviando foto X de Y” e só depois envia o cadastro completo. Falhas mantêm o formulário e a seleção em memória para tentar novamente. Cancelar/fechar a página descarta esse rascunho; os arquivos não são guardados em localStorage. Quando não há imagens, a ilustração provisória continua disponível. Galeria, catálogo, sacola e favoritos consomem o mesmo contrato anterior, agora aceitando também URLs geradas pelo upload.
+
+### Formatos, limites e segurança
+
+- **JPEG (`image/jpeg`), PNG (`image/png`) e WebP (`image/webp`) estáticos.** JPEG comum/progressivo de 8 bits é aceito. SVG, HTML, JavaScript, GIF, HEIC e animações não são recebidos. Exporte uma foto estática num formato aceito quando necessário.
+- **5 MiB por arquivo** (5.242.880 bytes), **20 imagens por produto**, incluindo imagens existentes e ilustrações. Máximo de **40 megapixels**, com até **10.000 pixels por lado**. A validação final está no servidor; o navegador apenas antecipa mensagens simples.
+- O servidor verifica assinatura, coerência do MIME e estrutura: chunks/CRC e encerramento PNG; marcadores, dimensões e encerramento JPEG; contêiner RIFF/chunks/dimensões WebP. Não confia no nome ou extensão enviados pelo cliente.
+- Os nomes são gerados por `crypto.randomBytes(16)`, com extensão determinada pelo formato validado. Escritas usam criação exclusiva e referências estritas, sem caminhos fornecidos pelo usuário, sobrescrita de arquivos internos ou traversal.
+- Upload exige sessão, origem exata e `X-CSRF-Token` antes de processar o corpo binário. A exceção ao formato JSON fica restrita ao endpoint de upload. As demais rotas mantêm JSON de até 16 KiB e as proteções existentes. Sem alteração de credenciais, expiração, cookies ou rate limiting de login.
+- Há no máximo **duas requisições de upload simultâneas por processo** (excesso: 429) e **200 arquivos temporários pendentes** (excesso: 400 com orientação para liberar espaço). Com arquivos máximos, só os temporários podem ocupar cerca de 1 GiB; monitore capacidade do volume e configure limites de ingresso no proxy.
+- Helmet e `nosniff` permanecem. A CSP acrescenta `blob:` apenas à diretiva de imagens, necessário às prévias locais; scripts, framing e demais restrições continuam iguais. Os arquivos publicados recebem MIME raster explícito.
+
+**Não há nova dependência.** Cada `File` selecionado é enviado como corpo binário de uma requisição, com `Content-Type` correspondente. O `express.raw` já disponível trata o limite do corpo após a autenticação; não foi necessário introduzir multipart, Multer, addon nativo ou compilação no Termux.
+
+### API e associação ao SQLite
+
+| Método e rota | Comportamento |
+| --- | --- |
+| `POST /api/admin/images` | Autenticado; corpo binário de **uma foto**, sem multipart/base64. Headers `Origin`, `X-CSRF-Token` e `Content-Type` obrigatórios. Responde 201 `{ image: { id, type, src, alt } }` com referência temporária |
+| `POST /api/admin/images?productId=ID` | Mesmo upload; na edição, verifica previamente se o produto existe (404 se não existir). Não associa nem publica a foto sozinho |
+| `GET /uploads/products/:nome` | Leitura pública de raster publicado e ainda referenciado em `product_images`; temporários, diretórios e nomes fora do padrão retornam 404 |
+
+A associação, remoção e troca da principal usam os **POST/PUT de produtos existentes**, com a lista final `images`. Não existe escrita pública nem endpoint separado para cadastrar administrador. A referência retornada pelo upload pode ser associada no cadastro novo ou na edição. O servidor recusa arquivos inexistentes/expirados, referências fabricadas, repetição da mesma foto e uso de arquivo já publicado por outro produto. O upload opcionalmente vinculado a um `productId` apenas verifica a existência; não constitui reserva exclusiva, pois esta versão tem uma única identidade administrativa autorizada.
+
+Não houve migration: `product_images` já tem produto relacionado, ordem, `is_primary` e `alt`. O servidor exige uma principal e IDs únicos. O texto alternativo vem da descrição informada ou de “Foto de [nome da peça] — [número]”. Imagens antigas em `/assets/` e as ilustrações continuam compatíveis. A principal é retornada primeiro pelo repositório existente e usada nos cards; a página individual continua com miniaturas/controles para todas as imagens.
+
+### Armazenamento, consistência e manutenção
+
+Padrão local, fora de `public/`:
+
+```text
+data/uploads/
+  .gitkeep       # única entrada versionada
+  pending/       # fotos recebidas, ainda não publicadas
+  products/      # fotos associadas/publicadas
+```
+
+Todo conteúdo de runtime desse diretório está ignorado pelo Git. `UPLOAD_DIR` é opcional: padrão `data/uploads`; outro caminho precisa ficar **fora do repositório**, por exemplo um volume persistente absoluto. Caminhos dentro de `public` e banco dentro do diretório de fotos são recusados. O servidor cria as subpastas quando necessário, com permissões restritas. `.env` real não foi modificado.
+
+O salvamento valida o produto e, durante a transação SQLite existente, copia as fotos temporárias para os nomes finais com criação exclusiva. Se a preparação de alguma foto ou a gravação no banco falhar, desfaz as novas cópias e mantém os temporários para outra tentativa. Só depois do commit remove os temporários consumidos. A leitura pública verifica referência no banco, de forma que cópias órfãs de uma falha ou queda anterior ao commit não são servidas. Como disco e SQLite não formam uma transação distribuída, uma interrupção abrupta ainda pode deixar arquivos órfãos, sem publicação indevida.
+
+Temporários expiram para associação após **24 horas**. Remover imagem da galeria elimina sua referência no commit; ela deixa de ser servida pela aplicação se nenhum produto a referenciar. A remoção física é posterior, por manutenção, evitando apagar arquivos antes da confirmação do banco. Cache do navegador de fotos já vistas pode permanecer por até uma hora.
+
+Com a aplicação **parada**, consulte arquivos temporários/órfãos com mais de 24 horas:
+
+```sh
+npm run media:cleanup
+# Depois de conferir o contador e com o servidor ainda parado:
+npm run media:cleanup -- --apply
+```
+
+Sem `--apply`, o comando apenas conta candidatos. Com `--apply`, remove somente nomes gerados pelo sistema, antigos e não referenciados (ou temporários expirados). Nunca remove fotos publicadas ainda referenciadas. Essa manutenção não é executada automaticamente no startup nem nesta tarefa. Arquivos pendentes abandonados contam para a quota até serem limpos. Faça **backup conjunto do SQLite e de UPLOAD_DIR**, com a aplicação e comandos de escrita parados; confira uma restauração antes do uso comercial.
+
+### Testes e conferência no celular
+
+```sh
+npm test
+node --check server.js
+find src scripts public/js tests -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --check {} \;
+git diff --check
+git status --short
+npm start
+```
+
+Reinicie o servidor para carregar as novas rotas e a CSP. Use as credenciais existentes, sem recriar `.env`. A suíte tem **120 testes aprovados**: os 97 anteriores e 23 novos, com banco e arquivos temporários próprios, removidos ao final. Cobre upload sem sessão/CSRF/origem correta, formatos/assinaturas inválidos, corrupção/truncamento, tamanho e resolução, JPEG/PNG/WebP aceitos, nomes seguros, publicação somente após associação, produto inexistente, várias imagens, principal, remoção, limite de quantidade, referências falsas, rollback de banco/arquivos, expiração, quota e limpeza segura. A lógica do navegador cobre seleção, limites, preservação das anteriores, principal/remoção, texto alternativo, contrato e alterações no rascunho. Nenhum teste lê o banco da loja ou envia WhatsApp.
+
+Validação manual pendente em Android, mantendo o roteiro responsivo anterior:
+
+1. Entre em `/admin.html` e abra um cadastro novo. Em **Fotos → Adicionar fotos**, selecione dois JPEG/PNG/WebP pela galeria. Confira miniaturas, principal e descrição opcional; salve num banco de desenvolvimento e recarregue.
+2. Confira a imagem principal nos cards e todas as fotos na página do produto. Adicione à sacola e confira a revisão/WhatsApp sem enviar a mensagem.
+3. Edite o mesmo produto, adicione outra foto e confirme que as anteriores permanecem. Troque a principal, remova uma foto e salve; confira persistência após recarregar.
+4. Cancele uma edição com mudanças na galeria: confira a confirmação e que a galeria anterior permanece no produto.
+5. Tente formato não aceito, foto maior que 5 MiB e quantidade superior a 20; confira mensagens legíveis. Simule falha de rede ao salvar e confira que a seleção/edição permanece na página.
+6. Confira celular em 320–430 px, botões, labels, foco, ausência de overflow e expiração/logout. O ambiente desta execução não tem navegador automatizado; testes de lógica não substituem a seleção nativa e a revisão visual real.
+
+### Limitações para hospedagem futura
+
+A primeira implantação exige **processo único e disco persistente**. Hospedagem com filesystem efêmero perderá as fotos em reinícios/deploys; réplicas sem volume compartilhado também não atendem esta arquitetura. Nenhum serviço externo foi integrado. Ao escolher a hospedagem, provisione um volume com backup ou migre `MediaService` para armazenamento de objetos, mantendo/adaptando as referências e a leitura pública.
+
+Esta versão valida assinatura/estrutura, mas **não faz decodificação completa, reencode, redução automática, thumbnails físicos, antivírus nem remoção de EXIF/metadados**. Não equivale a uma inspeção completa dos pixels; imagens exóticas ou corrompidas além dos cabeçalhos ainda podem falhar na exibição. Arquivos originais e suas dimensões/metadados são preservados. A otimização e normalização poderão ser tratadas depois conforme necessidade real e compatibilidade do runtime. As limitações de concorrência/última gravação da etapa 006 permanecem. Sem pagamentos, frete, pedidos persistentes ou gerenciador complexo de mídia.

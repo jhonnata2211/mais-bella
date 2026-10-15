@@ -193,3 +193,14 @@ body:has(dialog[open]) { overflow:hidden; }
 input,textarea,select,.form-section { scroll-margin-block:1.5rem 190px; }
 input:user-invalid,textarea:user-invalid,select:user-invalid { border-color:#a34337; }
 @media(max-width:899px) { html { scroll-padding-bottom:190px; } }
+/* MAISBELLA-008: galeria dentro do formulário aprovado. */
+.photo-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+.photo-card { display:flex; flex-direction:column; align-items:stretch; gap:.6rem; min-width:0; padding:.6rem; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+.photo-card img,.photo-placeholder { width:100%; height:auto; aspect-ratio:1; object-fit:cover; border-radius:6px; }
+.photo-placeholder { display:grid; place-items:center; background:var(--blush); font-size:.8rem; color:var(--rose); text-align:center; }
+.photo-card .badge { align-self:start; }
+.photo-card button { padding-inline:.25rem; font-size:.8rem; overflow-wrap:anywhere; }
+.photo-card label { font-size:.75rem; }
+#photo-feedback:empty { display:none; }
+#photo-feedback { font-size:.85rem; color:var(--rose); }
+@media(min-width:600px) { .photo-gallery { grid-template-columns:repeat(3,minmax(0,1fr)); } }

@@ -14,6 +14,10 @@ function getConfig(env = process.env) {
   const publicPath = path.join(root, 'public');
   if (databasePath === publicPath || databasePath.startsWith(publicPath + path.sep)) throw new Error('O banco não pode ficar dentro de public.');
   if (env.SEED_DEMO !== undefined && !['true', 'false'].includes(env.SEED_DEMO)) throw new Error('SEED_DEMO deve ser true ou false.');
+  const uploadsPath = path.resolve(root, env.UPLOAD_DIR || 'data/uploads');
+  if (uploadsPath === publicPath || uploadsPath.startsWith(publicPath + path.sep)) throw new Error('UPLOAD_DIR deve ficar fora de public.');
+  if (uploadsPath !== path.join(root, 'data', 'uploads') && (uploadsPath === root || uploadsPath.startsWith(root + path.sep))) throw new Error('Dentro do projeto, UPLOAD_DIR deve ser data/uploads. Use outro caminho somente fora do repositório.');
+  if (databasePath === uploadsPath || databasePath.startsWith(uploadsPath + path.sep)) throw new Error('O banco deve ficar fora de UPLOAD_DIR.');
   const { validHash } = require('./services/password');
   const production = env.NODE_ENV === 'production';
   const configured = Boolean(env.ADMIN_USER || env.ADMIN_PASSWORD_HASH || env.SESSION_SECRET);
@@ -24,6 +28,6 @@ function getConfig(env = process.env) {
   if (production && (!env.APP_ORIGIN || !origin.startsWith('https://') || env.SEED_DEMO === 'true')) throw new Error('Produção exige HTTPS e seed desativado.');
   if (env.TRUST_PROXY && env.TRUST_PROXY !== 'loopback') throw new Error('TRUST_PROXY deve ser loopback.');
   const admin = { enabled: configured, user: env.ADMIN_USER, passwordHash: env.ADMIN_PASSWORD_HASH, secret: env.SESSION_SECRET, origin, production, trustProxy: env.TRUST_PROXY === 'loopback', sessionMs: 30 * 60 * 1000 };
-  return { port, databasePath, admin, seedDemo: env.SEED_DEMO === undefined ? env.NODE_ENV !== 'production' : env.SEED_DEMO === 'true' };
+  return { port, databasePath, uploadsPath, admin, seedDemo: env.SEED_DEMO === undefined ? env.NODE_ENV !== 'production' : env.SEED_DEMO === 'true' };
 }
 module.exports = { root, loadEnvironment, getConfig };

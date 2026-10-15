@@ -78,10 +78,17 @@
           <details class="form-section" id="section-prices"><summary><span class="section-number">02</span><span>Preços<small>Valor da peça e promoção</small></span></summary><div class="section-content field-pair"><label for="price">Preço (R$)<input id="price" name="price" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0,00" required></label><label for="promotion">Preço promocional (opcional)<input id="promotion" name="promotion" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" placeholder="0,00"></label><p class="caption span-all">A promoção precisa ser menor que o preço original.</p></div></details>
           <details class="form-section" id="section-display"><summary><span class="section-number">03</span><span>Vitrine<small>Como a peça aparece na loja</small></span></summary><div class="section-content">
             <label class="check-label"><input name="active" type="checkbox" checked><span>Produto ativo<small>Disponível para aparecer na vitrine</small></span></label><label class="check-label"><input name="featured" type="checkbox"><span>Destaque<small>Participa da seleção de destaques</small></span></label><label class="check-label"><input name="isNew" type="checkbox"><span>Novidade</span></label><label class="check-label"><input name="bestSeller" type="checkbox"><span>Mais vendido</span></label>
-            <p id="photo-note" class="caption">Sem fotografia por enquanto? A peça usará uma ilustração provisória. Fotos reais serão tratadas em uma próxima etapa.</p>
-            <details id="photo-options" class="advanced"><summary>Usar uma foto já preparada (opcional)</summary><label for="image">Caminho da foto<input id="image" name="image" placeholder="/assets/foto.webp" aria-describedby="image-help"></label><p id="image-help" class="caption">Somente para fotos já disponibilizadas pela equipe no site. Não é necessário preencher para cadastrar a peça.</p></details>
+
           </div></details>
           <details class="form-section" id="section-variations"><summary><span class="section-number">04</span><span>Variações e estoque<small>Cores, tamanhos e quantidades</small></span></summary><div class="section-content"><p class="caption">Adicione uma combinação por cor e tamanho. Quantidade zero indica esgotado.</p><div id="variations" class="variation-list"></div><button type="button" id="add-variation" class="secondary-button">+ Adicionar variação</button></div></details>
+          <details class="form-section" id="section-photos"><summary><span class="section-number">05</span><span>Fotos<small>Galeria e foto principal</small></span></summary><div class="section-content">
+            <p id="photo-note" class="caption">Adicione até 20 imagens. JPEG, PNG ou WebP, até 5 MiB por foto. As alterações aparecem na loja depois de salvar o produto.</p>
+            <input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden aria-label="Escolher fotos do produto">
+            <button type="button" id="add-photos" class="secondary-button">+ Adicionar fotos</button>
+            <p id="photo-feedback" role="status" aria-live="polite" tabindex="-1"></p>
+            <div id="photo-gallery" class="photo-gallery"></div>
+            <p id="photos-empty" class="caption">Você pode salvar sem fotos por enquanto. A loja usará uma ilustração provisória.</p>
+          </div></details>
           <div class="editor-actions"><button type="submit" class="primary-button">Salvar produto</button><button type="button" id="cancel-product" class="quiet-button">Cancelar edição</button></div>
         </form>
       </section>

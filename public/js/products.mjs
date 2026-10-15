@@ -13,7 +13,7 @@ export function imageTone(image) {
 export function productVisual(image, name, eager = false) {
   const shape = ['dress', 'set', 'blouse', 'pants', 'skirt', 'shorts'].includes(image?.shape) ? image.shape : 'dress';
   const safeSource = image?.type === 'image' && typeof image.src === 'string' &&
-    image.src.startsWith('/assets/') && !image.src.includes('..');
+    (image.src.startsWith('/assets/') && !image.src.includes('..') || /^\/uploads\/products\/[a-f0-9]{32}\.(?:jpg|png|webp)$/.test(image.src));
   return safeSource
     ? `<img src="${escapeHTML(image.src)}" alt="${escapeHTML(image.alt || name)}" loading="${eager ? 'eager' : 'lazy'}" width="330" height="420">`
     : `<div class="garment garment-${shape}" role="img" aria-label="${escapeHTML(image?.alt || `Ilustração demonstrativa: ${name}`)}"></div>`;

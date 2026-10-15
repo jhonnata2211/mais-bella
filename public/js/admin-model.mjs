@@ -52,15 +52,15 @@ export const money = cents => new Intl.NumberFormat('pt-BR', { style: 'currency'
 export function productWithStatus(product, active) {
   return { ...product, active, promotionalPriceCents: product.promotionalPriceCents ?? null };
 }
-export function productPayload(values, variations, existing, id) {
+export function productPayload(values, variations, existing, id, images) {
   return {
     id: existing?.id || id,
     ...Object.fromEntries(['name', 'slug', 'shortDescription', 'description', 'categoryId', 'active', 'featured', 'isNew', 'bestSeller'].map(key => [key, values[key]])),
     priceCents: parseMoney(values.price),
     promotionalPriceCents: values.promotion.trim() ? parseMoney(values.promotion) : null,
-    images: existing ? existing.images : values.image.trim()
+    images: images ?? (existing ? existing.images : values.image?.trim()
       ? [{ type: 'image', src: values.image.trim(), alt: values.name }]
-      : [{ type: 'illustration', tone: 'rose', shape: 'dress', alt: 'Ilustração provisória de roupa, sem fotografia do produto' }],
+      : [{ type: 'illustration', tone: 'rose', shape: 'dress', alt: 'Ilustração provisória de roupa, sem fotografia do produto' }]),
     variations
   };
 }

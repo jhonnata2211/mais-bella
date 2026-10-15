@@ -1,3 +1,4 @@
+import { checkPhotoSelection, photoType, normalizeGallery, choosePrimary, removePhoto, galleryImages, galleryFingerprint } from './admin-gallery.mjs';
 import { dashboardMetrics, stockSummary, stockRows, filterProducts, money, slugFromName, productWithStatus, productPayload, draftChanged } from './admin-model.mjs';
 
 const $ = selector => document.querySelector(selector);
@@ -12,6 +13,9 @@ let csrf = '', products = [], categories = [], editing = null, editingCategory =
 let currentView = 'home', returnView = 'products', busy = false, epoch = 0;
 let productBaseline = null, categoryBaseline = null, productSlugCustom = false, categorySlugCustom = false;
 let resumeView = null, resumeCategory = false;
+let gallery = [], draftProductId = '';
+
+const productEntries = () => [...entries(productForm), ['gallery', galleryFingerprint(gallery)]];
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -56,10 +60,17 @@ async function task(label, handler) {
   if (busy) return false;
   setBusy(true, label);
   try { await handler(); return true; }
-  catch (error) { report(error); return false; }
+  catch (error) {
+    if (currentView === 'editor' && gallery.some(image => image.file) && csrf) {
+      $('#section-photos').open = true;
+      $('#photo-feedback').textContent = 'As fotos e as alterações ainda não foram confirmadas. Corrija o problema e salve novamente.';
+      renderGallery();
+    }
+    report(error); return false;
+  }
   finally { setBusy(false); }
 }
-const productDirty = () => productBaseline !== null && draftChanged(productBaseline, entries(productForm));
+const productDirty = () => productBaseline !== null && draftChanged(productBaseline, productEntries());
 const categoryDirty = () => categoryBaseline !== null && draftChanged(categoryBaseline, entries(categoryForm));
 const anyDirty = () => productDirty() || categoryDirty();
 function updateDirty() { $('#draft-indicator').hidden = !productDirty(); }
@@ -88,7 +99,7 @@ async function navigate(view) {
   if (busy || !csrf) return false;
   if (view === currentView) return true;
   if (!await allowDiscard()) return false;
-  productBaseline = null; categoryBaseline = null; editing = null;
+  productBaseline = null; categoryBaseline = null; editing = null; resetGallery();
   feedback(); setView(view); return true;
 }
 function showLogin(expired = false) {
@@ -102,21 +113,21 @@ function showLogin(expired = false) {
   for (const id of ['product-list', 'stock-list', 'category-list', 'metrics']) $('#' + id).replaceChildren();
   if (!keepDraft) {
     editing = null; editingCategory = null; productBaseline = null; categoryBaseline = null;
-    productForm.reset(); categoryForm.reset(); $('#variations').replaceChildren();
+    productForm.reset(); categoryForm.reset(); $('#variations').replaceChildren(); resetGallery();
   }
   if (expired) {
     feedback(keepDraft ? 'Sua sessão expirou. Entre novamente para continuar a edição. Suas alterações continuam aqui, ainda sem salvar.' : 'Sua sessão expirou. Entre novamente para continuar.', true, false);
     $('#username').focus();
   }
 }
-async function api(path, method = 'GET', body) {
+async function api(path, method = 'GET', body, rawType) {
   const requestEpoch = epoch;
   let response;
   try {
     response = await fetch('/api/admin' + path, {
       method, credentials: 'same-origin',
-      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) })
+      headers: { ...(body === undefined ? {} : { 'Content-Type': rawType || 'application/json' }), ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+      ...(body === undefined ? {} : { body: rawType ? body : JSON.stringify(body) })
     });
   } catch { throw Error('Não foi possível conectar à loja. Confira sua conexão e tente novamente.'); }
   if (requestEpoch !== epoch) throw Error('Seu acesso mudou. Entre novamente para continuar.');
@@ -128,7 +139,7 @@ async function api(path, method = 'GET', body) {
   try { data = await response.json(); } catch { throw Error('A loja não respondeu como esperado. Tente novamente.'); }
   if (!response.ok) {
     if (response.status === 403) throw Error('Não foi possível autorizar esta ação. Confira seu acesso e tente entrar novamente.');
-    if (response.status === 413) throw Error('Este cadastro ficou muito grande. Reduza o texto ou o número de variações e tente novamente.');
+    if (response.status === 413) throw Error(rawType ? 'Esta imagem é muito grande. O limite é 5 MiB por foto.' : 'Este cadastro ficou muito grande. Reduza o texto ou o número de variações e tente novamente.');
     throw Error(data.error || 'Não foi possível concluir. Tente novamente.');
   }
   return data;
@@ -247,6 +258,45 @@ async function enterWorkspace(data, announce = false) {
   resumeView = null; resumeCategory = false;
   if (announce) feedback(resumed ? 'Acesso restabelecido. Sua edição continua disponível; revise e salve quando terminar.' : 'Bem-vinda! Sua coleção está pronta para organizar.');
 }
+function resetGallery(images = []) {
+  for (const image of gallery) if (image.preview) URL.revokeObjectURL(image.preview);
+  gallery = normalizeGallery(images.map(image => ({ ...image })));
+  $('#photo-files').value = ''; $('#photo-feedback').textContent = ''; renderGallery();
+}
+function renderGallery() {
+  $('#photos-empty').hidden = gallery.length > 0;
+  $('#photo-gallery').replaceChildren(...gallery.map((image, index) => {
+    const card = element('div', 'photo-card');
+    if (image.type === 'image') {
+      const preview = element('img'); preview.src = image.preview || image.src;
+      preview.alt = image.alt || 'Prévia da foto ' + (index + 1); preview.loading = 'lazy'; preview.width = 180; preview.height = 180;
+      card.append(preview);
+    } else card.append(element('div', 'photo-placeholder', 'Ilustração atual'));
+    card.append(element('p', 'caption', 'Imagem ' + (index + 1)));
+    if (image.primary) card.append(badge('Foto principal', 'active'));
+    else card.append(action('Definir como principal', () => { gallery = choosePrimary(gallery, image.id); renderGallery(); updateDirty(); $('#photo-feedback').textContent = 'Foto principal alterada. Salve o produto para confirmar.'; }, 'quiet-button', 'Definir imagem ' + (index + 1) + ' como principal'));
+    const label = element('label', '', 'Descrição da foto (opcional)'), input = element('input');
+    input.type = 'text'; input.maxLength = 500; input.value = image.alt || '';
+    input.addEventListener('input', () => { image.alt = input.value; updateDirty(); }); label.append(input); card.append(label);
+    card.append(action('Remover', async () => {
+      if (!await confirmAction('Remover esta imagem?', 'A imagem sairá da galeria quando você salvar o produto. Você pode cancelar a edição para manter a galeria anterior.', 'Remover')) return;
+      if (image.preview) URL.revokeObjectURL(image.preview);
+      gallery = removePhoto(gallery, image.id); renderGallery(); updateDirty(); $('#add-photos').focus();
+    }, 'quiet-button', 'Remover imagem ' + (index + 1)));
+    return card;
+  }));
+}
+$('#add-photos').addEventListener('click', () => $('#photo-files').click());
+$('#photo-files').addEventListener('change', () => {
+  const files = [...$('#photo-files').files]; $('#photo-files').value = '';
+  if (!files.length) return;
+  try {
+    checkPhotoSelection(files, gallery.length);
+    const added = files.map(file => ({ id: newId(), type: 'image', file, preview: URL.createObjectURL(file), alt: '', primary: false }));
+    gallery = normalizeGallery([...gallery, ...added]); renderGallery(); updateDirty();
+    $('#photo-feedback').textContent = files.length + ' foto(s) selecionada(s). Salve o produto para confirmar.';
+  } catch (error) { $('#photo-feedback').textContent = error.message; $('#photo-feedback').focus(); }
+});
 function addVariation(v = {}) {
   const id = v.id || newId(), row = element('fieldset', 'admin-variation'); row.dataset.id = id;
   row.append(element('legend', '', 'Variação ' + ($('#variations').children.length + 1)));
@@ -274,6 +324,7 @@ async function openProduct(id, from = 'products', stock = false) {
   await task(id ? 'Abrindo a peça…' : 'Preparando o cadastro…', async () => {
     // Consulta completa antes da edição; contém inclusive variações inativas.
     const p = id ? (await api('/products/' + encodeURIComponent(id))).product : null;
+    draftProductId = p?.id || newId();
     editing = p; productBaseline = null; categoryBaseline = null; productSlugCustom = Boolean(p); returnView = from;
     productForm.reset(); $('#variations').replaceChildren();
     for (const detail of productForm.querySelectorAll('details')) detail.open = detail.id === 'section-info';
@@ -288,10 +339,9 @@ async function openProduct(id, from = 'products', stock = false) {
       if (firstActive) field(productForm, 'categoryId').value = firstActive.id;
       addVariation();
     }
-    field(productForm, 'image').disabled = Boolean(p);
-    $('#photo-options').hidden = Boolean(p); $('#photo-note').textContent = p ? 'A galeria atual será preservada. Alterações de fotos serão tratadas em uma próxima etapa.' : 'Sem fotografia por enquanto? A peça usará uma ilustração provisória. Fotos reais serão tratadas em uma próxima etapa.';
+    resetGallery(p?.images || []);
     $('#editor-title').textContent = p ? 'Editar produto' : 'Novo produto'; $('#demo-note').hidden = !p?.demo;
-    productBaseline = JSON.stringify(entries(productForm)); updateDirty(); feedback(); setView('editor', false);
+    productBaseline = JSON.stringify(productEntries()); updateDirty(); feedback(); setView('editor', false);
     if (stock) { $('#section-variations').open = true; $('#section-info').open = false; }
   });
   if (currentView === 'editor' && csrf) {
@@ -345,7 +395,7 @@ submit($('#login'), 'Entrando na sua loja…', async () => {
 });
 submit(productForm, 'Salvando sua peça…', async () => {
   const values = {};
-  for (const key of ['name', 'slug', 'shortDescription', 'description', 'categoryId', 'price', 'promotion', 'image']) values[key] = field(productForm, key).value;
+  for (const key of ['name', 'slug', 'shortDescription', 'description', 'categoryId', 'price', 'promotion']) values[key] = field(productForm, key).value;
   for (const key of ['active', 'featured', 'isNew', 'bestSeller']) values[key] = field(productForm, key).checked;
   const variations = [...$('#variations').children].map(row => {
     const v = { id: row.dataset.id };
@@ -353,10 +403,22 @@ submit(productForm, 'Salvando sua peça…', async () => {
     return v;
   });
   if (!variations.length) { $('#section-variations').open = true; throw Error('Adicione pelo menos uma variação de cor e tamanho antes de salvar.'); }
-  const payload = productPayload(values, variations, editing, newId());
+  // Confere os preços antes de enviar arquivos; a validação final continua no servidor.
+  productPayload(values, variations, editing, 'validacao-local');
+  const pending = gallery.filter(item => item.file && !item.uploaded);
+  for (let index = 0; index < pending.length; index++) {
+    const item = pending[index];
+    $('#loading-text').textContent = 'Enviando foto ' + (index + 1) + ' de ' + pending.length + '…';
+    $('#photo-feedback').textContent = $('#loading-text').textContent;
+    const result = await api('/images' + (editing ? '?productId=' + encodeURIComponent(editing.id) : ''), 'POST', item.file, photoType(item.file));
+    // Mantém o arquivo e sua prévia até a confirmação do cadastro; permite tentar de novo.
+    Object.assign(item, { id: result.image.id, src: result.image.src, uploaded: true });
+  }
+  $('#loading-text').textContent = 'Salvando o produto e as fotos…';
+  const payload = productPayload(values, variations, editing, draftProductId, galleryImages(gallery, values.name));
   const saved = await api('/products' + (editing ? '/' + encodeURIComponent(editing.id) : ''), editing ? 'PUT' : 'POST', payload);
   // Usa a resposta confirmada do servidor; falha em uma leitura posterior não induz cadastro duplicado.
-  updateProduct(saved.product); productBaseline = null; editing = null; renderAll(); setView(returnView, false); feedback('Produto salvo. As informações da loja foram atualizadas.');
+  updateProduct(saved.product); productBaseline = null; editing = null; resetGallery(); renderAll(); setView(returnView, false); feedback('Produto salvo. As informações da loja foram atualizadas.');
 });
 submit(categoryForm, 'Salvando a categoria…', async () => {
   const payload = { id: editingCategory?.id || newId(), name: field(categoryForm, 'name').value, slug: field(categoryForm, 'slug').value, sortOrder: Number(field(categoryForm, 'sortOrder').value), active: field(categoryForm, 'active').checked };

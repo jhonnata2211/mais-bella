@@ -1,12 +1,14 @@
-const { Router } = require('express');
+const { Router, raw } = require('express');
+const { MAX_IMAGE_BYTES, IMAGE_TYPES } = require('../services/image-validation');
+const { ValidationError } = require('../services/validation');
 const { AdminRepository } = require('../repositories/admin-repository');
 const { AdminService } = require('../services/admin-service');
 const { AdminAuth } = require('../services/admin-auth');
-function adminRoutes(db, config) {
+function adminRoutes(db, config, media) {
   const router = Router();
   const auth = new AdminAuth(config);
   const repository = new AdminRepository(db);
-  const service = new AdminService(repository);
+  const service = new AdminService(repository, media);
   const cookieName = config.production ? '__Host-mb_admin' : 'mb_admin';
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: config.production, path: '/' };
   router.use((req,res,next) => {
@@ -14,7 +16,7 @@ function adminRoutes(db, config) {
     if (!config.enabled) return res.status(503).json({ error: 'Administração não configurada' });
     if (config.production && !req.secure) return res.status(403).json({ error: 'HTTPS obrigatório' });
     // Origin obrigatório em todas as escritas, inclusive login (login CSRF).
-    if (!['GET','HEAD','OPTIONS'].includes(req.method) && (req.get('origin') !== config.origin || !req.is('application/json'))) return res.status(403).json({ error: 'Origem ou formato não autorizado' });
+    if (!['GET','HEAD','OPTIONS'].includes(req.method) && (req.get('origin') !== config.origin || (!(req.method === 'POST' && req.path === '/images') && !req.is('application/json')))) return res.status(403).json({ error: 'Origem ou formato não autorizado' });
     const cookie = (req.headers.cookie || '').split(';').map(c => c.trim()).find(c => c.startsWith(cookieName + '='));
     req.adminToken = cookie?.slice(cookieName.length + 1);
     req.adminSession = auth.session(req.adminToken);
@@ -38,6 +40,24 @@ function adminRoutes(db, config) {
   });
   router.get('/session', (req,res) => res.json({ authenticated: true, csrfToken: req.adminSession.csrf, expiresAt: req.adminSession.expires }));
   router.post('/logout', (req,res) => { auth.invalidate(req.adminToken); res.clearCookie(cookieName,cookieOptions); res.json({ success: true }); });
+  let uploadsInFlight = 0;
+  router.post('/images', (req,res,next) => {
+    // A exceção ao formato JSON existe somente aqui, após sessão, origem e CSRF.
+    req.imageUpload = true;
+    const mime = (req.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!Object.hasOwn(IMAGE_TYPES, mime)) throw new ValidationError('Formato de imagem não permitido. Use JPEG, PNG ou WebP.');
+    if (Object.keys(req.query).some(key => key !== 'productId') || req.query.productId !== undefined && typeof req.query.productId !== 'string') throw new ValidationError('Produto inválido.');
+    if (req.query.productId !== undefined) service.product(req.query.productId);
+    if (uploadsInFlight >= 2) return res.status(429).set('Retry-After','5').json({ error: 'Há fotos sendo enviadas. Aguarde um momento e tente novamente.' });
+    uploadsInFlight++;
+    let released = false;
+    const release = () => { if (!released) { released = true; uploadsInFlight--; } };
+    res.once('finish', release); res.once('close', release);
+    req.imageMime = mime;
+    next();
+  }, raw({ type: () => true, limit: MAX_IMAGE_BYTES, inflate: false }), (req,res) => {
+    res.status(201).json({ image: media.stage(req.body, req.imageMime) });
+  });
   router.get('/products', (req,res) => res.json({ products: repository.products() }));
   router.get('/products/:id', (req,res) => res.json({ product: service.product(req.params.id) }));
   router.post('/products', (req,res) => res.status(201).json({ product: service.saveProduct(req.body) }));

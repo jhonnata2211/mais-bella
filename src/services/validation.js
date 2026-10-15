@@ -43,13 +43,15 @@ function validateProduct(input) {
   };
   if (result.promotionalPriceCents !== null && result.promotionalPriceCents >= result.priceCents) throw new ValidationError('Preço promocional deve ser inferior ao preço base');
   if (typeof result.createdAt !== 'string' || result.createdAt.length > 40 || !Number.isFinite(Date.parse(result.createdAt))) throw new ValidationError('Data inválida');
-  if (!Array.isArray(input.images) || input.images.length < 1 || input.images.length > 20) throw new ValidationError('Imagens inválidas');
+  if (!Array.isArray(input.images) || input.images.length < 1 || input.images.length > 20) throw new ValidationError('Use de 1 a 20 imagens por produto.');
   const tones = ['rose', 'sand', 'cream', 'clay'];
   const shapes = ['dress', 'set', 'blouse', 'pants', 'skirt', 'shorts'];
   result.images = input.images.map((image, index) => {
     if (!image || !['illustration', 'image'].includes(image.type)) throw new ValidationError('Tipo de imagem inválido');
     if (image.type === 'illustration' && (!tones.includes(image.tone) || !shapes.includes(image.shape))) throw new ValidationError('Ilustração inválida');
-    if (image.type === 'image' && (typeof image.src !== 'string' || !/^\/assets\/[a-zA-Z0-9_/-]+\.(?:png|jpg|jpeg|webp|avif|svg)$/.test(image.src) || image.src.includes('..'))) throw new ValidationError('Caminho de imagem inválido');
+    const localImage = typeof image.src === 'string' && /^\/assets\/[a-zA-Z0-9_/-]+\.(?:png|jpg|jpeg|webp|avif|svg)$/.test(image.src) && !image.src.includes('..');
+    const uploadedImage = typeof image.src === 'string' && /^\/uploads\/products\/[a-f0-9]{32}\.(?:jpg|png|webp)$/.test(image.src);
+    if (image.type === 'image' && !localImage && !uploadedImage) throw new ValidationError('Caminho de imagem inválido');
     return { ...image, id: text(image.id || `${result.id}-image-${index + 1}`, 'id da imagem'), alt: text(image.alt, 'alt', 500), order: integer(image.order ?? index, 'ordem'), primary: boolean(image.primary ?? index === 0, 'principal') };
   });
   if (new Set(result.images.map(image => image.id)).size !== result.images.length || result.images.filter(image => image.primary).length !== 1) throw new ValidationError('Defina uma imagem principal e IDs únicos');
