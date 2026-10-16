@@ -7,10 +7,16 @@ async function startServer() {
   process.umask(0o077);
   loadEnvironment();
   const config = getConfig();
-  const db = openDatabase(config.databasePath);
+  const release = require('node:fs').existsSync(config.databasePath) ? require('./src/services/operation-lock').operationLock(config.databasePath).acquire('startup') : () => {};
+  let db, app;
   try {
-    if (config.seedDemo) await seedDemo(db);
-    const app = createApp({ db, config });
+    // Protege abertura/migrações, seed e preparação da aplicação.
+    // Um único finally libera antes de abrir a porta HTTP, inclusive em erro.
+    try {
+      db = openDatabase(config.databasePath);
+      if (config.seedDemo) await seedDemo(db);
+      app = createApp({ db, config });
+    } finally { release(); }
     const server = app.listen(config.port);
     await new Promise((resolve, reject) => {
       server.once('error', reject);
@@ -21,7 +27,7 @@ async function startServer() {
       server.close(() => { db.close(); process.exit(0); });
     });
     return { server, db };
-  } catch (error) { db.close(); throw error; }
+  } catch (error) { if (db) db.close(); throw error; }
 }
 if (require.main === module) startServer().catch(() => {
   console.error('Não foi possível iniciar a aplicação. Verifique o Node.js, a configuração e as permissões do banco.');

@@ -877,3 +877,120 @@ Execute `npm test`, `node --check server.js`, as verificações de sintaxe dos J
 No Android (320–430 px), valide: navegação “Loja”, abertura das seções, teclado e foco, seleção de foto real e prévia, cancelar/confirmar salvamento, textos longos e quebras, destinos do botão, filtros das quatro categorias, restauração individual/geral e rascunho ao sair. Confira fotos após reinício usando uma instalação de teste com armazenamento persistente. Teste conflito em duas abas, login/logout, catálogo, sacola e WhatsApp. A composição visual e a orientação/recorte das fotos ainda dependem dessa validação real; não houve publicação nem alteração do Railway nesta etapa.
 
 Validação automatizada da etapa 013: **198 testes aprovados**, sem falhas (171 anteriores e 27 novos); sintaxe aprovada em 17 arquivos JS/MJS, incluindo server.js, e `git diff --check` sem erros. Validação manual no Android pendente.
+
+## Backup online e restauração — MAISBELLA-014A
+
+Esta seção substitui a exigência de parada para **backup quando usado `--online`**. A alternativa offline anterior continua disponível sem essa opção e exige `MAINTENANCE_MODE=true` com servidor parado. Não habilite manutenção global para um backup online. Nenhum backup, configuração ou deploy de produção foi executado durante esta implementação.
+
+### Como a captura online mantém banco e fotos consistentes
+
+O servidor atualizado e os comandos técnicos compartilham um bloqueio exclusivo, criado atomicamente ao lado do SQLite (`DB_PATH` canônico + `.operations-lock`). Todos os processos precisam executar esta versão do projeto e usar o mesmo banco/volume. Escritas administrativas em produtos, categorias, personalização, senha e publicação de uploads seguram o bloqueio até o término real do handler, inclusive se o cliente desconectar. A limpeza de mídia, limpeza demonstrativa, seed, redefinição técnica de senha e inicialização do servidor também respeitam esse bloqueio. Não existe sistema de pedidos persistentes; o fluxo WhatsApp continua sem gravar pedidos no servidor.
+
+O comando online só adquire o bloqueio se nenhuma escrita protegida estiver ativa. Se houver uma, recusa a captura sem criar a pasta de destino; aguarde e tente novamente. Não existe fila ou expiração automática. Durante a captura, gravações recebem 503 e `Retry-After: 5`, após as verificações normais de autenticação/CSRF/Origin. Uma foto ainda sendo transmitida pode terminar de chegar, mas não será gravada/publicada durante a captura. Leitura pública, fotos, consulta de sessão, login e logout continuam funcionando. Reiniciar o servidor durante a captura é recusado; não faça deploy nessa janela.
+
+Como defesa adicional, uma conexão separada mantém `BEGIN IMMEDIATE` no SQLite até terminar a captura, impedindo também outras gravações SQL. A cópia é produzida pela API `node:sqlite.backup` usando outra conexão, com o servidor atendendo leituras em WAL. As fotos são determinadas pelo banco copiado, incluindo as da Home; são copiadas sem sobrescrita. A exclusão/publicação cooperante fica bloqueada até terminar. O comando verifica integridade e chaves estrangeiras, gera manifesto versão 2 com tamanho/SHA-256 de cada arquivo e confere novamente a cópia antes de remover `INCOMPLETO`. Dados/manifesto são sincronizados no disco; isso não substitui redundância e garantias do armazenamento da hospedagem.
+
+O bloqueio é liberado em `finally` em erros normais, incluindo falta de foto/espaço. Queda abrupta, SIGKILL ou encerramento do contêiner podem deixá-lo abandonado: **não remova automaticamente por idade, PID ou timeout**. A escrita permanece bloqueada por segurança; a vitrine já em execução pode continuar lendo, mas novo startup será recusado. O responsável deve parar todos os processos envolvidos, confirmar que nenhuma captura/escrita continua ativa, preservar/avaliar pastas `INCOMPLETO` e só então remover o bloqueio abandonado por procedimento técnico controlado. Não apague esse diretório com a aplicação operando para “destravar”.
+
+### Geração futura no Railway
+
+Pré-requisitos: esta versão publicada mediante aprovação; uma instância, WAL, disco persistente em `/data`, `DB_PATH` e `UPLOAD_DIR` absolutos corretos e acesso remoto autorizado previamente comprovado. Confira espaço para outra cópia completa do banco e das fotos. O backup não recebe limite automático de tamanho/retenção.
+
+Prepare uma pasta privada dedicada, por exemplo `/data/backups`, com pai existente e permissão 700. O comando **não a cria automaticamente**. `BACKUP_ROOT` autoriza explicitamente essa pasta no mesmo volume: não pode conter o banco, coincidir com seu diretório, sobrepor uploads ou ficar dentro do projeto. Cada `BACKUP_DIR` deve ser um filho direto novo de `BACKUP_ROOT`. Sem `BACKUP_ROOT`, continuam valendo as restrições antigas de destino externo ao diretório do banco, uploads e código. Caminhos reais são verificados para rejeitar desvios por symlink.
+
+No contêiner remoto, com as variáveis reais de banco/uploads já configuradas, execute futuramente:
+
+```sh
+BACKUP_ROOT=/data/backups \
+BACKUP_DIR=/data/backups/maisbella-AAAA-MM-DD-HHMMSS \
+npm run production:backup -- --online
+```
+
+A data/hora é um exemplo: substitua por um nome único. Não coloque senhas/tokens no comando. Sucesso retorna somente `success` e quantidade de fotos; falha usa mensagem genérica, sem caminhos internos ou segredos. Não há endpoint HTTP novo de backup/download. `BACKUP_ROOT` pode ser fornecido apenas ao comando; não exige alterar variáveis do Railway.
+
+O resultado contém `catalog.sqlite`, `uploads/products/` e `manifest.json`. Pendentes/órfãos, `.env`, node_modules e assets do código não são copiados. O banco inclui hash administrativo; todos os backups são privados. O manifesto registra o commit de `RAILWAY_GIT_COMMIT_SHA` válido ou do Git local, quando disponível; se for nulo, registre a versão separadamente. Ele não inclui segredos de ambiente. SHA-256 detecta alteração acidental; não é assinatura contra um invasor capaz de substituir arquivos **e** manifesto.
+
+### Exportar para o Termux e verificar
+
+`railway run` executa localmente e não monta o volume remoto. Execute a geração por acesso remoto autorizado, por exemplo SSH confirmado no serviço. Não use pre-deploy: o volume não está montado nessa fase. Não presuma que CLI/SSH estejam instalados, permitidos ou compatíveis no Android; valide antes da janela de captura.
+
+Depois de vincular a CLI ao projeto/ambiente/serviço corretos e confirmar o volume, liste o caminho antes de transferir. Com `/data` montado como raiz do volume, o caminho apresentado pela ferramenta é relativo ao volume:
+
+```sh
+railway volume files list /backups
+railway volume files download /backups/maisbella-AAAA-MM-DD-HHMMSS "$HOME/maisbella-backups/maisbella-AAAA-MM-DD-HHMMSS"
+```
+
+Prepare o diretório pai local privado antes; não use `--overwrite`. Se houver vários volumes, selecione explicitamente o correto conforme `railway volume files --help`; confirme a versão disponível antes de copiar os exemplos. A CLI documenta download de diretórios, mas permissões e funcionamento no seu serviço ainda precisam de validação. Consulte [Railway volume](https://docs.railway.com/cli/volume), [SSH](https://docs.railway.com/cli/ssh) e [API SQLite do Node](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html#sqlitebackupsourceDb-path-options).
+
+No projeto local, com Node >=24.15, verifique a cópia baixada:
+
+```sh
+BACKUP_DIR="$HOME/maisbella-backups/maisbella-AAAA-MM-DD-HHMMSS" npm run production:verify
+```
+
+A verificação é somente leitura, rejeita `INCOMPLETO`, manifesto incompatível, arquivos alterados/ausentes, nomes inesperados, symlinks em fotos/diretórios, inconsistência SQLite/referencial e divergência entre as fotos do banco e do inventário. Ferramentas de verificação/restauração não carregam `.env` ou exigem segredos de produção. Backups antigos com manifesto versão 1 precisam do procedimento legado revisado; não são aceitos silenciosamente como versão 2.
+
+Guarde outra cópia **criptografada fora do Railway e fora do celular**, e a configuração privada em guarda separada. Uma cópia em `/data/backups` sobrevive a reinícios/deploys, mas compartilha risco de perda do volume e consome sua capacidade. Não é backup externo. Não há upload externo, criptografia, agendamento ou exclusão automática nesta etapa. A proteção nativa de volume do Railway, se habilitada, é complementar.
+
+### Restaurar sem sobrescrever dados atuais
+
+A ferramenta restaura **somente em pasta nova**, fora do projeto, com pai existente. Não modifica configuração, não inicia servidor, não migra banco e não troca o banco ativo. Exemplo local de ensaio:
+
+```sh
+BACKUP_DIR="$HOME/maisbella-backups/maisbella-AAAA-MM-DD-HHMMSS" \
+RESTORE_DIR="$HOME/maisbella-restaurada-AAAA-MM-DD-HHMMSS" \
+npm run production:restore
+```
+
+O backup de origem é validado antes de criar o destino. Cada arquivo é copiado exclusivamente; a cópia restaurada é validada de novo. Falha deixa `INCOMPLETO` e nunca autoriza usar aquela pasta. A origem permanece preservada. Use `DB_PATH=<RESTORE_DIR>/catalog.sqlite` e `UPLOAD_DIR=<RESTORE_DIR>/uploads` somente numa instância de teste isolada com o código correspondente, seed desativado e configuração de teste própria. Não injete variáveis privadas de produção no teste local. Confira catálogo, estoque, fotos/galerias, Home e autenticação; testes não devem enviar WhatsApp real.
+
+A troca futura em produção exige janela específica, servidor/comandos de escrita parados, cópia atual preservada para retorno, restauração em novo diretório persistente e mudança coordenada de **ambos** os caminhos. Não misture WAL/SHM antigos com o snapshot. Não substitua arquivos do SQLite aberto. Uma senha alterada depois do backup volta ao hash daquele backup; sessões em memória não são restauradas. A ferramenta não faz cutover, não altera Railway e não automatiza restauração destrutiva.
+
+### Limites e ensaio antes da entrega
+
+Processos antigos, SQL manual e ferramentas que alterem fotos por fora do protocolo não são cobertos integralmente pelo bloqueio da aplicação; a reserva SQLite impede escritas SQL concorrentes, mas não impede alterações arbitrárias no filesystem por alguém com acesso ao volume. Não rode ferramentas manuais, limpeza externa ou deploy durante a captura. Novas rotas de escrita (inclusive pedidos, se algum dia existirem) precisam reutilizar o guard de operação. O atual fluxo de compra e os dados locais de sacola/favoritos continuam independentes desse backup.
+
+Teste no ambiente isolado antes de publicar e depois valide no serviço autorizado: leituras durante captura, 503 no painel sem perder rascunho, liberação após sucesso/falha, download real, verificação local e restauração completa. Meça duração/espaço com fotografias reais antes de definir frequência/retenção. Uma captura longa pausa escritas por toda a cópia e conferência, mas não deve expirar sessões por iniciativa do backup. A expiração normal das sessões permanece.
+
+Validação automatizada da etapa 014A: **213 testes aprovados**, sem falhas (198 anteriores e 15 novos). Verificação de sintaxe aprovada em 14 arquivos JS/MJS, incluindo server.js; `git diff --check` sem erros. Os testes usam SQLite, uploads, backups e restaurações temporários próprios; não leem o `.env` nem alteram o banco/volume real. Download e recuperação no Railway ainda dependem de validação autorizada no ambiente real.
+
+### Revisão de segurança da captura online — conexões e recuperação de travas
+
+A reserva `BEGIN IMMEDIATE` e a cópia usam **conexões independentes**, sem escrever pela conexão que executa a API de backup. Uma reserva de escrita não equivale a uma exclusão de leitores; em WAL, a captura pode ler enquanto a reserva impede novas escritas. Isso foi testado com processos independentes para servidor HTTP, comando de backup, worker SQLite e escritor SQL. Não se deve trocar a API para usar uma conexão em transação de escrita, nem compartilhar a conexão de destino durante a cópia. Referência: [API de backup SQLite](https://www.sqlite.org/backup.html).
+
+Agora `--online` recusa bancos fora de WAL, recomendando manutenção offline. A aquisição da reserva SQLite usa `busy_timeout=0`: se um escritor externo já tiver transação ativa, a captura falha sem aguardar indefinidamente, e não cria o destino. Essa reserva permanece até a cópia e conferência das fotografias acabarem. As proteções de integridade, chaves estrangeiras, inventário, hashes e `INCOMPLETO` permanecem.
+
+A etapa nativa de cópia foi isolada num processo privado, sem `.env` ou credenciais de ambiente. O prazo padrão é **120 segundos**. Ao excedê-lo, o pai solicita SIGKILL e **aguarda o evento de saída do worker antes de liberar a proteção**. Não há `Promise.race` que abandone um backup ainda em execução. O prazo é da cópia SQLite, não da operação inteira de fotos/hash/verificação. Problemas de kernel ou storage que impeçam encerramento real não justificam liberar a trava: a operação continua fechada por segurança e exige intervenção. A reserva não é removida por timeout externo da CLI.
+
+O PID do worker é registrado no proprietário da trava antes de ele receber autorização para acessar o SQLite. Se perder o canal com o pai, o worker encerra. A recuperação recusa tanto o pai ativo quanto qualquer worker registrado ainda ativo, inclusive PID reutilizado por outro processo: neste último caso, a recusa conservadora é intencional. Não conclua que um backup é válido só porque um processo foi encerrado; verifique a cópia e nunca use uma pasta com `INCOMPLETO`.
+
+#### Recuperação explícita, sem exclusão automática
+
+A trava agora registra o boot do kernel e o namespace de PID, quando disponíveis. Não se infere identidade apenas por hostname, idade, horário ou número do PID. Não há remoção automática no startup.
+
+Primeiro inspecione, usando o caminho real do banco (os comandos não carregam `.env`):
+
+```sh
+DB_PATH=/data/maisbella.sqlite npm run production:lock -- --inspect
+```
+
+A saída apresenta token de identificação da trava, PID, finalidade, data e `sameRuntime`. O token não é senha ou credencial; serve para impedir recuperação de uma trava diferente daquela que o operador inspecionou. Não use um caminho de exemplo sem confirmar o arquivo real.
+
+Somente se o processo terminou e o runtime puder ser verificado, solicite explicitamente:
+
+```sh
+DB_PATH=/data/maisbella.sqlite \
+LOCK_TOKEN=TOKEN_DA_INSPECAO \
+npm run production:lock -- --recover --confirm=RECOVER_DEAD_OWNER
+```
+
+A ferramenta verifica novamente token, namespace/boot e a ausência de **todos** os processos registrados. Permissão insuficiente para verificar um PID, processo ativo, PID reutilizado, outro runtime, metadados legados/incompletos ou identidade indisponível causam recusa. A confirmação não ignora essas verificações. Quando autorizada, a recuperação **arquiva** o diretório da trava em um diretório privado `.recovered-<identificador>/lock`; não apaga metadados, SQLite, fotos ou backups. Um gate exclusivo impede duas recuperações concorrentes. Se o recuperador também sofrer queda, seu gate `.operations-lock.recovery` pode permanecer e também exige revisão; não existe limpeza automática desse gate.
+
+Em algumas instalações Android/Termux, `/proc/self/ns/pid` não está disponível. Nesse caso `sameRuntime=false`, e a recuperação automática verificável é recusada. Isso não impede gerar backups ou verificar/restaurar cópias. Os testes da política de recuperação usam identificação sintética de namespace somente nas fixtures quando o sandbox não fornece esse recurso; os testes de concorrência HTTP/SQL e encerramento de processos são reais.
+
+**Após redeploy ou para travas antigas/sem identificação verificável, use uma janela de manutenção técnica.** Pare todos os escritores e workers, impeça reinícios automáticos/deploys e confirme exclusividade do volume. Se o serviço parado não permitir acesso aos arquivos, prepare previamente um contêiner de manutenção exclusivo, com o volume montado e sem iniciar `server.js`, conforme recursos e permissões efetivamente disponíveis no Railway. Só depois de comprovar que nenhuma execução anterior pode acessar o volume, arquive a trava/gate preservando as evidências, por operação manual supervisionada. Não use a ausência de um PID no novo contêiner como prova de morte no antigo. A ferramenta não oferece `--force` para contornar essa fronteira.
+
+Antes de voltar a operar, preserve e avalie backups `INCOMPLETO`, confira a integridade do banco ativo e a disponibilidade das fotos, valide que não há reserva SQLite concorrente e teste uma escrita controlada. Uma nova captura deve usar outro destino. Se a topologia, acesso exclusivo ao volume, WAL ou encerramento de processos não puderem ser garantidos, **não use backup online: adote manutenção com escritores parados**. Ensaios locais não substituem a validação autorizada do runtime/volume Railway.
+
+Validação da revisão: **220 testes aprovados**, sem falhas (213 anteriores e 7 novos). Os novos testes exercitam processos independentes de servidor, backup, worker e escritor, transação concorrente, destino SQLite ocupado, timeout, SIGKILL real, recusa de recuperação de processos ativos/identidade desconhecida e exigência de WAL. As falhas simuladas de cópia/sincronização, hashes e restauração continuam cobertas pelos testes anteriores. Nenhuma operação foi executada no Railway ou no banco real.

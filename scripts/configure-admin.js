@@ -31,8 +31,10 @@ async function configure() {
     if (password !== confirmation) throw Error('As senhas não coincidem.');
     const hash = await hashPassword(password);
     if (reset) {
-      const db = require('../src/db/database').openDatabase(config.databasePath);
-      try { new (require('../src/repositories/credential-repository').CredentialRepository)(db).save(username, hash); } finally { db.close(); }
+      const release = require('../src/services/operation-lock').operationLock(config.databasePath).acquire('password-reset');
+      let db;
+      try { db = require('../src/db/database').openDatabase(config.databasePath); } catch(error) { release(); throw error; }
+      try { new (require('../src/repositories/credential-repository').CredentialRepository)(db).save(username, hash); } finally { try { db.close(); } finally { release(); } }
       console.log('Senha redefinida. Reinicie o servidor para invalidar os acessos anteriores.');
       return;
     }

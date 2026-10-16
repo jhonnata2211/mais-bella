@@ -10,7 +10,10 @@
     "admin:configure": "node scripts/configure-admin.js",
     "media:cleanup": "node scripts/cleanup-media.js",
     "production:cleanup": "node scripts/production-cleanup.js",
-    "production:backup": "node scripts/production-backup.js"
+    "production:backup": "node scripts/production-backup.js",
+    "production:verify": "node scripts/verify-backup.js",
+    "production:restore": "node scripts/restore-backup.js",
+    "production:lock": "node scripts/recover-operation-lock.js"
   },
   "keywords": [],
   "author": "",

@@ -13,6 +13,14 @@ function adminRoutes(db, config, media) {
   const repository = new AdminRepository(db);
   const service = new AdminService(repository, media);
   const customization = new (require('../services/customization-service').CustomizationService)(db, media);
+  const lock = require('../services/operation-lock').databaseLock(db);
+  // Segura o bloqueio até a conclusão REAL do handler, mesmo se o cliente desconectar.
+  const write = handler => async (req,res,next) => {
+    let release;
+    try { release = lock.acquire('admin-write'); await handler(req,res,next); }
+    catch (error) { next(error); }
+    finally { release?.(); }
+  };
   const cookieName = config.production ? '__Host-mb_admin' : 'mb_admin';
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: config.production, path: '/' };
   router.use((req,res,next) => {
@@ -47,7 +55,7 @@ function adminRoutes(db, config, media) {
   router.get('/session', (req,res) => res.json({ authenticated: true, csrfToken: req.adminSession.csrf, expiresAt: req.adminSession.expires }));
   router.post('/logout', (req,res) => { auth.invalidate(req.adminToken); res.clearCookie(cookieName,cookieOptions); res.json({ success: true }); });
   let changingPassword = false;
-  router.post('/password', async (req,res) => {
+  router.post('/password', write(async (req,res) => {
     const { currentPassword, newPassword, confirmation } = req.body || {};
     if (typeof currentPassword !== 'string' || currentPassword.length > 256 || typeof newPassword !== 'string' || newPassword.length < 15 || newPassword.length > 256) return res.status(400).json({ error: 'Use uma nova senha entre 15 e 256 caracteres.' });
     if (newPassword !== confirmation) return res.status(400).json({ error: 'A confirmação da nova senha não coincide.' });
@@ -65,7 +73,7 @@ function adminRoutes(db, config, media) {
       res.clearCookie(cookieName,cookieOptions);
       res.json({ success: true });
     } finally { changingPassword = false; }
-  });
+  }));
   let uploadsInFlight = 0;
   router.post('/images', (req,res,next) => {
     // A exceção ao formato JSON existe somente aqui, após sessão, origem e CSRF.
@@ -81,19 +89,19 @@ function adminRoutes(db, config, media) {
     res.once('finish', release); res.once('close', release);
     req.imageMime = mime;
     next();
-  }, raw({ type: () => true, limit: MAX_IMAGE_BYTES, inflate: false }), (req,res) => {
+  }, raw({ type: () => true, limit: MAX_IMAGE_BYTES, inflate: false }), write((req,res) => {
     res.status(201).json({ image: media.stage(req.body, req.imageMime) });
-  });
+  }));
   router.get('/customization', (req,res) => res.json(customization.get()));
-  router.put('/customization', (req,res) => res.json(customization.save(req.body)));
-  router.post('/customization/reset', (req,res) => res.json(customization.save(req.body, true)));
+  router.put('/customization', write((req,res) => res.json(customization.save(req.body))));
+  router.post('/customization/reset', write((req,res) => res.json(customization.save(req.body, true))));
   router.get('/products', (req,res) => res.json({ products: repository.products() }));
   router.get('/products/:id', (req,res) => res.json({ product: service.product(req.params.id) }));
-  router.post('/products', (req,res) => res.status(201).json({ product: service.saveProduct(req.body) }));
-  router.put('/products/:id', (req,res) => res.json({ product: service.saveProduct(req.body,req.params.id) }));
+  router.post('/products', write((req,res) => res.status(201).json({ product: service.saveProduct(req.body) })));
+  router.put('/products/:id', write((req,res) => res.json({ product: service.saveProduct(req.body,req.params.id) })));
   router.get('/categories', (req,res) => res.json({ categories: repository.categories() }));
-  router.post('/categories', (req,res) => res.status(201).json({ category: service.saveCategory(req.body) }));
-  router.put('/categories/:id', (req,res) => res.json({ category: service.saveCategory(req.body,req.params.id) }));
+  router.post('/categories', write((req,res) => res.status(201).json({ category: service.saveCategory(req.body) })));
+  router.put('/categories/:id', write((req,res) => res.json({ category: service.saveCategory(req.body,req.params.id) })));
   router.use((req,res) => res.status(404).json({ error: 'Rota não encontrada' }));
   return router;
 }
