@@ -15,7 +15,8 @@ function cleanupPlan(db) {
   const images = db.prepare(`SELECT DISTINCT i.reference FROM product_images i JOIN products p ON p.id=i.product_id
     WHERE p.demo=1 AND NOT EXISTS (SELECT 1 FROM product_images other JOIN products real ON real.id=other.product_id WHERE other.reference=i.reference AND real.demo=0)
     ORDER BY i.reference`).all().map(row => row.reference);
-  return { products, images, categoriesPreserved: true, filesPreserved: true };
+  const usedByHome = new Set(require('../repositories/image-references').customizationReferences(db));
+  return { products, images: images.filter(reference => !usedByHome.has(reference)), categoriesPreserved: true, filesPreserved: true };
 }
 function cleanupDemo(db, { apply = false, maintenance = false, seedDemo = false, confirmation = '' } = {}) {
   if (apply && (!maintenance || seedDemo || confirmation !== 'REMOVE_DEMOS')) throw Error('Limpeza real não autorizada.');
@@ -51,7 +52,7 @@ async function createBackup(config, destination) {
   try {
     snapshot.exec('PRAGMA journal_mode=DELETE;');
     if (snapshot.prepare('PRAGMA integrity_check').get().integrity_check !== 'ok') throw Error('Backup inconsistente.');
-    references = [...new Set(snapshot.prepare("SELECT reference FROM product_images WHERE kind='image'").all().map(row => row.reference))];
+    references = require('../repositories/image-references').imageReferences(snapshot);
   } finally { snapshot.close(); }
   const directory = path.join(target, 'uploads', 'products');
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });

@@ -22,6 +22,7 @@
       <button type="button" data-go="products" aria-controls="view-products"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4-5 4 3 4 2-1v9h8v-9l2 1 3-4-5-4c0 4-8 4-8 0Z"/></svg><span>Produtos</span></button>
       <button type="button" data-go="stock" aria-controls="view-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v13H3Z M3 7l9 4 9-4 M12 11v9 M8 5l9 4"/></svg><span>Estoque</span></button>
       <button type="button" data-go="categories" aria-controls="view-categories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Categorias</span></button>
+      <button type="button" data-go="customization" aria-controls="view-customization" aria-label="Personalização da Loja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 6 6-10 10H5v-6ZM12 6l6 6 M3 21h18"/></svg><span>Loja</span></button>
     </div>
   </nav>
   <main id="main" class="admin-main" tabindex="-1" aria-busy="true">
@@ -41,7 +42,7 @@
     <div id="workspace" hidden>
       <section id="view-home" data-view="home" aria-labelledby="home-title">
         <div class="page-heading"><div><span class="eyebrow">SEU DIA NA MAIS BELLA</span><h1 id="home-title" tabindex="-1">Vamos cuidar da coleção?</h1><p class="muted">Uma visão simples do que está na sua loja.</p></div><button type="button" data-new-product class="primary-button">+ Novo produto</button></div>
-        <p><button type="button" id="change-password" class="text-button">Alterar senha</button></p>
+        <p class="home-settings"><button type="button" class="secondary-button" data-go="customization">Personalização da Loja</button><button type="button" id="change-password" class="text-button">Alterar senha</button></p>
         <div id="metrics" class="metrics"></div>
         <p class="caption">Produtos ativos e inativos seguem o status do cadastro. Estoque considera variações ativas, mesmo em produtos fora da vitrine. Categorias incluem ativas e inativas.</p>
         <p id="demo-summary" class="notice" hidden></p>
@@ -50,6 +51,27 @@
           <button type="button" data-go="stock" class="shortcut"><span aria-hidden="true">02</span><strong>Estoque</strong><small>Confira cores e tamanhos</small><span aria-hidden="true">↗</span></button>
           <button type="button" data-go="categories" class="shortcut"><span aria-hidden="true">03</span><strong>Categorias</strong><small>Organize a coleção</small><span aria-hidden="true">↗</span></button>
         </div></section>
+      </section>
+      <section id="view-customization" data-view="customization" aria-labelledby="customization-title" hidden>
+        <div class="page-heading"><div><span class="eyebrow">SUA LOJA, SEU JEITO</span><h1 id="customization-title" tabindex="-1">Personalização da Loja</h1><p class="muted">Cuide da página inicial sem precisar editar código.</p></div><span id="customization-draft" class="badge badge-low" hidden>Alterações não salvas</span></div>
+        <form id="customization-form">
+          <details class="form-section" open><summary><span class="section-number">01</span><span>Banner principal<small>Imagem, textos e botão da coleção</small></span></summary><div class="section-content">
+            <label for="custom-collection">Nome da coleção<input id="custom-collection" name="hero-collection" maxlength="60" required></label>
+            <label for="custom-title">Título<textarea id="custom-title" name="hero-title" maxlength="120" rows="2" required></textarea></label>
+            <label for="custom-description">Descrição<textarea id="custom-description" name="hero-description" maxlength="400" rows="3" required></textarea></label>
+            <label for="custom-button-text">Texto do botão<input id="custom-button-text" name="hero-buttonText" maxlength="40" required></label>
+            <label for="custom-button-target">Destino do botão<select id="custom-button-target" name="hero-buttonHref" required></select></label>
+            <div data-custom-section="hero" class="custom-image-editor"><p class="caption">Imagem principal: JPEG, PNG ou WebP, até 5 MiB.</p><div data-custom-photo="hero" class="custom-photo-frame"></div><div data-custom-controls class="custom-photo-controls"></div><label for="custom-hero-alt">Descrição da imagem (acessibilidade)<input id="custom-hero-alt" name="hero-alt" maxlength="160"></label></div>
+          </div></details>
+          <details class="form-section"><summary><span class="section-number">02</span><span>Categorias da página inicial<small>Imagens e nomes exibidos</small></span></summary><div class="section-content"><p class="caption">Estes nomes são apenas de exibição. Os cadastros, identificadores e filtros dos produtos continuam os mesmos.</p>
+            <fieldset class="custom-category-editor"><legend>Vestidos</legend><label for="custom-vestidos-label">Nome exibido<input id="custom-vestidos-label" name="vestidos-label" maxlength="40" required></label><div data-custom-section="vestidos" class="custom-image-editor"><p class="caption">Imagem da categoria: JPEG, PNG ou WebP, até 5 MiB.</p><div data-custom-photo="vestidos" class="custom-photo-frame"></div><div data-custom-controls class="custom-photo-controls"></div><label for="custom-vestidos-alt">Descrição da imagem (acessibilidade)<input id="custom-vestidos-alt" name="vestidos-alt" maxlength="160"></label></div></fieldset>
+<fieldset class="custom-category-editor"><legend>Conjuntos</legend><label for="custom-conjuntos-label">Nome exibido<input id="custom-conjuntos-label" name="conjuntos-label" maxlength="40" required></label><div data-custom-section="conjuntos" class="custom-image-editor"><p class="caption">Imagem da categoria: JPEG, PNG ou WebP, até 5 MiB.</p><div data-custom-photo="conjuntos" class="custom-photo-frame"></div><div data-custom-controls class="custom-photo-controls"></div><label for="custom-conjuntos-alt">Descrição da imagem (acessibilidade)<input id="custom-conjuntos-alt" name="conjuntos-alt" maxlength="160"></label></div></fieldset>
+<fieldset class="custom-category-editor"><legend>Blusas</legend><label for="custom-blusas-label">Nome exibido<input id="custom-blusas-label" name="blusas-label" maxlength="40" required></label><div data-custom-section="blusas" class="custom-image-editor"><p class="caption">Imagem da categoria: JPEG, PNG ou WebP, até 5 MiB.</p><div data-custom-photo="blusas" class="custom-photo-frame"></div><div data-custom-controls class="custom-photo-controls"></div><label for="custom-blusas-alt">Descrição da imagem (acessibilidade)<input id="custom-blusas-alt" name="blusas-alt" maxlength="160"></label></div></fieldset>
+<fieldset class="custom-category-editor"><legend>Calças</legend><label for="custom-calcas-label">Nome exibido<input id="custom-calcas-label" name="calcas-label" maxlength="40" required></label><div data-custom-section="calcas" class="custom-image-editor"><p class="caption">Imagem da categoria: JPEG, PNG ou WebP, até 5 MiB.</p><div data-custom-photo="calcas" class="custom-photo-frame"></div><div data-custom-controls class="custom-photo-controls"></div><label for="custom-calcas-alt">Descrição da imagem (acessibilidade)<input id="custom-calcas-alt" name="calcas-alt" maxlength="160"></label></div></fieldset>
+          </div></details>
+          <details class="form-section" open><summary><span class="section-number">03</span><span>Prévia do conteúdo<small>Confira antes de salvar</small></span></summary><div class="section-content"><p class="caption">Prévia simplificada de imagens e textos. O corte das imagens depende da tela. As alterações só aparecem na loja depois de salvar.</p><div id="customization-preview" class="customization-preview"></div><a class="text-link" href="/" target="_blank" rel="noopener noreferrer">Ver página inicial em outra aba ↗</a></div></details>
+          <div class="editor-actions"><button type="submit" class="primary-button">Salvar personalização</button><button type="button" id="reload-customization" class="quiet-button">Recarregar versão salva</button><button type="button" id="restore-customization" class="quiet-button">Restaurar padrão</button></div>
+        </form>
       </section>
       <section id="view-products" data-view="products" aria-labelledby="products-title" hidden>
         <div class="page-heading"><div><span class="eyebrow">SUA COLEÇÃO</span><h1 id="products-title" tabindex="-1">Produtos</h1><p class="muted">Cada peça, fácil de encontrar.</p></div><button type="button" data-new-product class="primary-button">+ Novo produto</button></div>

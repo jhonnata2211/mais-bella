@@ -49,7 +49,7 @@ class MediaService {
   }
   // Executar manutenção com o servidor parado. O banco é a fonte das referências vivas.
   cleanup(db, apply = false, now = Date.now()) {
-    const live = new Set(db.prepare("SELECT reference FROM product_images WHERE kind='image'").all().map(row => row.reference));
+    const live = new Set(require('../repositories/image-references').imageReferences(db));
     const candidates = [];
     for (const [folder, directory] of [['pending', this.pending], ['products', this.published]]) {
       if (!fs.existsSync(directory)) continue;

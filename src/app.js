@@ -29,11 +29,15 @@ function createApp({ db, config = require('./config').getConfig(), service = new
   app.use(express.json({ limit: '16kb', strict: true }));
   app.get('/api/storefront-config', (req,res) => res.set('Cache-Control','no-store').json({ developmentFeatures: !config.admin.production }));
   app.use('/api/admin', require('./routes/admin-routes').adminRoutes(db, config.admin, media));
+  app.get('/api/store-customization', (req,res) => {
+    const { customization } = new (require('./repositories/customization-repository').CustomizationRepository)(db).get();
+    res.set('Cache-Control', 'no-store').json({ customization });
+  });
   app.use('/api', catalogRoutes(service));
-  // Leitura somente de rasters publicados e ainda referenciados no catálogo.
+  // Leitura somente de rasters publicados e ainda referenciados no catálogo ou na Home.
   app.get('/uploads/products/:filename', (req,res,next) => {
     const filename = req.params.filename;
-    if (!FILE_NAME.test(filename) || !db.prepare('SELECT id FROM product_images WHERE reference=? LIMIT 1').get('/uploads/products/' + filename)) return res.status(404).json({ error: 'Foto não encontrada' });
+    if (!FILE_NAME.test(filename) || !require('./repositories/image-references').isImageReferenced(db, '/uploads/products/' + filename)) return res.status(404).json({ error: 'Foto não encontrada' });
     const type = filename.endsWith('.jpg') ? 'image/jpeg' : filename.endsWith('.png') ? 'image/png' : 'image/webp';
     res.set({ 'Content-Type': type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=3600' });
     res.sendFile(filename, { root: media.published, dotfiles: 'deny' }, error => { if (error) next(error); });

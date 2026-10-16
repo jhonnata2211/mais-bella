@@ -840,3 +840,40 @@ Valide no Android, especialmente em 360, 390 e 412 px:
 Execute npm test, verificação de sintaxe de JS/MJS e git diff --check. Testes usam dados sintéticos, SQLite e uploads temporários próprios; não leem o banco de desenvolvimento, não limpam o volume e não enviam mensagem real pelo WhatsApp.
 
 Validação automatizada da etapa 012: **171 testes aprovados**, sem falhas (156 anteriores e 15 novos), além da verificação de sintaxe dos arquivos JS/MJS alterados e git diff --check. A validação manual no Android permanece pendente.
+
+## Personalização da Loja — MAISBELLA-013
+
+No painel, entre em **Loja → Personalização da Loja** (também há um atalho no Início). Pelo celular, edite os textos do banner, escolha o destino do botão e selecione fotos da galeria para o banner e os quatro espaços de categorias. A prévia mostra fotos e textos antes de salvar; é uma composição simplificada, não uma reprodução exata da Home. Confira o resultado em “Ver página inicial”. As fotos são ajustadas com recorte central; prefira imagens com o assunto centralizado e revise em celular e desktop.
+
+As seções são recolhíveis. “Salvar personalização” pede confirmação; fotos novas só são enviadas depois dessa confirmação. Sair com alterações pendentes pede confirmação, e uma sessão expirada preserva o rascunho na aba para novo login. Não há persistência local desse rascunho: fechar a aba pode perdê-lo. Se outro acesso salvar primeiro, o servidor recusa a versão desatualizada; “Recarregar versão salva” permite descartar o rascunho com confirmação e revisar a versão atual.
+
+“Usar ilustração padrão” prepara a restauração apenas daquela imagem; é preciso salvar. “Restaurar valores padrão” exige confirmação e restaura todos os textos e ilustrações da Home. Os padrões são os mesmos anteriores à etapa, incluindo a ênfase do título e as ilustrações CSS originais. Nenhuma dessas ações apaga produtos, categorias ou fotografias. Os nomes editados aqui são **rótulos visuais da Home**: não renomeiam categorias no catálogo, nem modificam seus identificadores ou filtros.
+
+### Limites e APIs
+
+- Uma imagem por espaço: banner, Vestidos, Conjuntos, Blusas e Calças (até cinco). JPEG, PNG ou WebP, até **5 MiB por arquivo**, reutilizando os limites de dimensões, validação real de formato e remoção de metadados dos uploads existentes. SVG, HTML e URLs externas de imagens são recusados. Cada foto tem descrição alternativa editável (até 160 caracteres).
+- Textos obrigatórios: coleção até 60 caracteres; título até 120; descrição até 400; botão e nome de categoria até 40. Título e descrição permitem quebra de linha. Conteúdo é renderizado como texto, sem interpretar HTML.
+- Destinos fixos: novidades/mais vendidos da Home, catálogo completo, novidades/promoções do catálogo e sacola. Não são aceitas URLs externas, rotas administrativas ou URLs arbitrárias.
+- GET `/api/store-customization`: leitura pública apenas dos textos, destinos e imagens da vitrine, sem revisão ou informações administrativas; `Cache-Control: no-store`.
+- GET `/api/admin/customization`: consulta autenticada, incluindo revisão.
+- PUT `/api/admin/customization`: recebe `{revision, customization}`; grava com controle de concorrência (409 para revisão antiga).
+- POST `/api/admin/customization/reset`: recebe `{revision}` e restaura padrões.
+- POST `/api/admin/images`: upload existente, reutilizado sem criar endpoint público de escrita. Escritas continuam exigindo sessão, HTTPS em produção, Origin e CSRF; cookies, logout e rate limiting permanecem.
+
+### Persistência e manutenção
+
+A migração **003_store_customization.sql** é aditiva e aplicada pelo mecanismo existente na inicialização: cria somente tabelas/índice próprios. Consultar padrões não insere produtos nem cria uma configuração fictícia no banco. Nenhum ID ou registro existente é reescrito. A migração não foi aplicada ao banco de desenvolvimento durante a implementação; testes usam bancos temporários.
+
+Configurações e referências ficam no SQLite configurado por **DB_PATH**; imagens usam o **UPLOAD_DIR** existente, em `products/`, com nomes aleatórios gerados pelo servidor. Não há variável nova, nova dependência ou alteração necessária de credenciais. Em futura publicação, mantenha banco e uploads no volume persistente já configurado; confira ambos os caminhos antes de reiniciar/deployar. O runtime continua sendo Node **>=24.15**, conforme package.json, inclusive para o módulo síncrono de validação compartilhado.
+
+A gravação usa transação, publicação de arquivos sem sobrescrever existentes e rollback das novas cópias em falha do banco. Uploads pendentes seguem expiração de 24 horas e limite de 200 do serviço existente. Substituir/restaurar não exclui arquivos publicados automaticamente: fotos sem referência podem ocupar espaço até a manutenção explícita. A limpeza de mídia e o backup agora consideram referências de produtos **e da Home**; o cleanup demonstrativo preserva imagens ainda usadas pela personalização. As ferramentas também funcionam com bancos anteriores à migração 003. Faça backup consistente do banco e das imagens antes de atualizar produção; não copie apenas o SQLite.
+
+A Home preserva seu conteúdo original se a consulta falhar; uma imagem que não carregar retorna à ilustração original. Atualizações aparecem em novas consultas/carregamentos, sem sincronização instantânea de abas já abertas. Imagens publicadas são públicas; restaurar padrões não revoga cópias, caches ou links previamente obtidos.
+
+### Validação antes de publicar
+
+Execute `npm test`, `node --check server.js`, as verificações de sintaxe dos JS/MJS alterados e `git diff --check`. Os testes cobrem padrões, permissões/CSRF/Origin/HTTPS, validações, imagens maliciosas, uploads, persistência, concorrência, rollback, backup/limpeza e renderização textual segura, além das regressões anteriores.
+
+No Android (320–430 px), valide: navegação “Loja”, abertura das seções, teclado e foco, seleção de foto real e prévia, cancelar/confirmar salvamento, textos longos e quebras, destinos do botão, filtros das quatro categorias, restauração individual/geral e rascunho ao sair. Confira fotos após reinício usando uma instalação de teste com armazenamento persistente. Teste conflito em duas abas, login/logout, catálogo, sacola e WhatsApp. A composição visual e a orientação/recorte das fotos ainda dependem dessa validação real; não houve publicação nem alteração do Railway nesta etapa.
+
+Validação automatizada da etapa 013: **198 testes aprovados**, sem falhas (171 anteriores e 27 novos); sintaxe aprovada em 17 arquivos JS/MJS, incluindo server.js, e `git diff --check` sem erros. Validação manual no Android pendente.

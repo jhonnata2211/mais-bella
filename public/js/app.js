@@ -33,6 +33,10 @@
       const { initCatalog } = await import('./catalog-page.mjs');
       initCatalog();
     } else {
+      try {
+        const { loadCustomization } = await import('./store-customization.mjs');
+        await loadCustomization({ categories });
+      } catch { /* A Home preserva a apresentação original se a personalização falhar. */ }
       const { initHome } = await import('./home.mjs');
       initHome();
     }

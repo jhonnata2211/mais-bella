@@ -1,3 +1,4 @@
+import { initCustomizationPanel } from './admin-customization.mjs';
 import { checkPhotoSelection, photoType, normalizeGallery, choosePrimary, removePhoto, galleryImages, galleryFingerprint } from './admin-gallery.mjs';
 import { dashboardMetrics, stockSummary, stockRows, filterProducts, money, slugFromName, productWithStatus, productPayload, draftChanged } from './admin-model.mjs';
 
@@ -16,6 +17,7 @@ let currentView = 'home', returnView = 'products', busy = false, epoch = 0;
 let productBaseline = null, categoryBaseline = null, productSlugCustom = false, categorySlugCustom = false;
 let resumeView = null, resumeCategory = false;
 let gallery = [], draftProductId = '';
+let customizationPanel;
 
 const productEntries = () => [...entries(productForm), ['gallery', galleryFingerprint(gallery)]];
 
@@ -77,7 +79,7 @@ async function task(label, handler) {
 }
 const productDirty = () => productBaseline !== null && draftChanged(productBaseline, productEntries());
 const categoryDirty = () => categoryBaseline !== null && draftChanged(categoryBaseline, entries(categoryForm));
-const anyDirty = () => productDirty() || categoryDirty();
+const anyDirty = () => productDirty() || categoryDirty() || Boolean(customizationPanel?.isDirty());
 function updateDirty() { $('#draft-indicator').hidden = !productDirty(); }
 function confirmAction(title, description, accept = 'Continuar') {
   if (confirmDialog.open) return Promise.resolve(false);
@@ -104,7 +106,9 @@ async function navigate(view) {
   if (busy || !csrf) return false;
   if (view === currentView) return true;
   if (!await allowDiscard()) return false;
+  if (view === 'customization' && !await task('Carregando personalização…', () => customizationPanel.load())) return false;
   productBaseline = null; categoryBaseline = null; editing = null; resetGallery();
+  customizationPanel?.discard();
   feedback(); setView(view); return true;
 }
 function showLogin(expired = false) {
@@ -120,7 +124,7 @@ function showLogin(expired = false) {
   for (const id of ['product-list', 'stock-list', 'category-list', 'metrics']) $('#' + id).replaceChildren();
   if (!keepDraft) {
     editing = null; editingCategory = null; productBaseline = null; categoryBaseline = null;
-    productForm.reset(); categoryForm.reset(); $('#variations').replaceChildren(); resetGallery();
+    productForm.reset(); categoryForm.reset(); $('#variations').replaceChildren(); resetGallery(); customizationPanel?.reset();
   }
   if (expired) {
     feedback(keepDraft ? 'Sua sessão expirou. Entre novamente para continuar a edição. Suas alterações continuam aqui, ainda sem salvar.' : 'Sua sessão expirou. Entre novamente para continuar.', true, false);
@@ -328,6 +332,7 @@ function addVariation(v = {}) {
 }
 async function openProduct(id, from = 'products', stock = false) {
   if (busy || !await allowDiscard()) return;
+  customizationPanel?.discard();
   await task(id ? 'Abrindo a peça…' : 'Preparando o cadastro…', async () => {
     // Consulta completa antes da edição; contém inclusive variações inativas.
     const p = id ? (await api('/products/' + encodeURIComponent(id))).product : null;
@@ -432,6 +437,7 @@ submit(categoryForm, 'Salvando a categoria…', async () => {
   const saved = await api('/categories' + (editingCategory ? '/' + encodeURIComponent(editingCategory.id) : ''), editingCategory ? 'PUT' : 'POST', payload);
   updateCategory(saved.category); categoryBaseline = null; editingCategory = null; categoryDialog.close(); renderAll(); feedback('Categoria salva. Sua coleção está organizada.');
 });
+customizationPanel = initCustomizationPanel({ api, task, confirm: confirmAction, feedback });
 for (const button of document.querySelectorAll('[data-go]')) button.addEventListener('click', () => navigate(button.dataset.go));
 for (const button of document.querySelectorAll('[data-new-product]')) button.addEventListener('click', () => openProduct());
 for (const id of ['product-search', 'product-status', 'product-category']) $('#' + id).addEventListener(id === 'product-search' ? 'input' : 'change', renderProducts);

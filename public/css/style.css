@@ -248,3 +248,8 @@ body:has(dialog[open]) .whatsapp-floating{visibility:hidden;pointer-events:none}
 
 /* Ações de privacidade: mantêm os controles confortáveis no celular. */
 .privacy-actions{margin-block:18px}.privacy-actions button,[data-clear-shopping]{min-height:44px}.privacy-dialog{width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);padding:24px;background:var(--paper);color:var(--ink)}.privacy-dialog::backdrop{background:#30231f66}.privacy-dialog h2{font-size:30px}.privacy-dialog p{margin-block:18px}.privacy-dialog-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:20px}.privacy-dialog button{min-height:44px}
+
+/* Personalização só altera os elementos escolhidos; padrões mantêm o estilo original. */
+.custom-store-copy{white-space:pre-line;overflow-wrap:anywhere}.hero-art.has-store-image img{position:absolute;inset:42px 25px 0 60px;width:calc(100% - 85px);height:calc(100% - 42px);object-fit:cover;border-radius:240px 240px 0 0}.category-art.has-store-image:before{display:none}.category-art.has-store-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.category [data-category-caption]{overflow-wrap:anywhere;gap:8px;min-width:0}
+
+[data-hero-collection],[data-hero-button]{max-width:100%;overflow-wrap:anywhere}

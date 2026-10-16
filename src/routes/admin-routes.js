@@ -12,6 +12,7 @@ function adminRoutes(db, config, media) {
   const auth = new AdminAuth(config);
   const repository = new AdminRepository(db);
   const service = new AdminService(repository, media);
+  const customization = new (require('../services/customization-service').CustomizationService)(db, media);
   const cookieName = config.production ? '__Host-mb_admin' : 'mb_admin';
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: config.production, path: '/' };
   router.use((req,res,next) => {
@@ -83,6 +84,9 @@ function adminRoutes(db, config, media) {
   }, raw({ type: () => true, limit: MAX_IMAGE_BYTES, inflate: false }), (req,res) => {
     res.status(201).json({ image: media.stage(req.body, req.imageMime) });
   });
+  router.get('/customization', (req,res) => res.json(customization.get()));
+  router.put('/customization', (req,res) => res.json(customization.save(req.body)));
+  router.post('/customization/reset', (req,res) => res.json(customization.save(req.body, true)));
   router.get('/products', (req,res) => res.json({ products: repository.products() }));
   router.get('/products/:id', (req,res) => res.json({ product: service.product(req.params.id) }));
   router.post('/products', (req,res) => res.status(201).json({ product: service.saveProduct(req.body) }));

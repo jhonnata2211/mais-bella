@@ -42,13 +42,13 @@ function counts(db) {
 
 test('SQLite: inicializa catálogo e credenciais e reabre o arquivo sem perder dados', async t => {
   const { db, filename, service } = await fixture(t, { seed: false });
-  assert.deepEqual(counts(db), { categories: 0, products: 0, product_images: 0, product_variations: 0, seed_runs: 0, schema_migrations: 2 });
+  assert.deepEqual(counts(db), { categories: 0, products: 0, product_images: 0, product_variations: 0, seed_runs: 0, schema_migrations: 3 });
   service.createCategory({ id: 'categoria-local', slug: 'categoria-local', name: 'Categoria local' });
   const second = openDatabase(filename);
   try {
     assert.equal(second.prepare('SELECT name FROM categories').get().name, 'Categoria local');
     migrate(second);
-    assert.equal(second.prepare('SELECT count(*) AS n FROM schema_migrations').get().n, 2);
+    assert.equal(second.prepare('SELECT count(*) AS n FROM schema_migrations').get().n, 3);
     assert.equal(second.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
   } finally { second.close(); }
 });
@@ -190,7 +190,7 @@ test('criação interna é transacional: falha de imagem não deixa produto parc
 test('migrations aplicadas não são repetidas e checksum divergente é recusado', async t => {
   const { db, filename } = await fixture(t);
   migrate(db);
-  assert.equal(counts(db).schema_migrations, 2);
+  assert.equal(counts(db).schema_migrations, 3);
   db.prepare('UPDATE schema_migrations SET checksum=?').run('alterado');
   assert.throws(() => openDatabase(filename), /modificada/);
   assert.equal(counts(db).products, 12);
